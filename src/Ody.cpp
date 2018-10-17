@@ -1,8 +1,6 @@
 #include "STS.hpp"
 #include "dsp/digital.hpp"
 #include "window.hpp"
-
-
 //#include "torpedo.hpp"
 
 struct Ody : Module 
@@ -34,8 +32,7 @@ struct Ody : Module
 		OUT_OUTPUT_OCTAVE,
 		//switches
 		ENUMS(OUT_OUTPUT_SW, 22),
-        
-		NUM_OUTPUTS
+     	NUM_OUTPUTS
 	};
 	enum LightIds
     {
