@@ -6,14 +6,17 @@
 #include "dsp/filter.hpp"
 #include "dsp/fir.hpp"    
 #include "window.hpp"
-
-//BINARY(src_SpringReverbIR_pcm);    
+#include "osdialog.h"
 
 float *springReverbIR;
 size_t springReverbIRLen;
 
-// Ver 5 load from disk code 
+
 void springReverbInit(float** springReverbIR, size_t* springReverbIRLen) {
+
+	//std::string dir = path.empty() ? assetLocal("") : stringDirectory(path);
+	//std::string dir = play->lastPath.empty() ? assetLocal("") : stringDirectory(play->lastPath);
+	//char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, NULL);
 	std::string irFilename = assetPlugin(plugin, "res/SpringReverbIR.pcm");
 	FILE *f = fopen(irFilename.c_str(), "rb");
 	assert(f);
@@ -62,6 +65,11 @@ struct ConvolutionReverb : Module {
 	SampleRateConverter<1> outputSrc;
 	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> inputBuffer;
 	DoubleRingBuffer<Frame<1>, 16*BLOCK_SIZE> outputBuffer;
+
+	//std::string lastPath;
+	//std::string waveFileName;
+	//std::string waveExtension;
+	//bool loading = false;
 
 	RCFilter dryFilter;
 	PeakFilter vuFilter;
@@ -207,31 +215,55 @@ void ConvolutionReverb::step() {
 		addChild(ModuleLightWidget::create<MediumLight<GreenLight>>(Vec(70, 188), module, ConvolutionReverb::VU1_LIGHT + 6));
 	}
 
-struct ConvolutionReverbPanelStyleItem : MenuItem {
-    ConvolutionReverb* module;
-    int panelStyle;
-    void onAction(EventAction &e) override {
-
-    springReverbInit(&springReverbIR,&springReverbIRLen); 
-
-	//convolver->setKernel(springReverbIR,springReverbIRLen);  
-	delete [] springReverbIR;
-    }
-    
-};
-
-void ConvolutionReverbWidget::appendContextMenu(Menu *menu) {
+/* void ConvolutionReverbWidget::appendContextMenu(Menu *menu) {
     ConvolutionReverb *module = dynamic_cast<ConvolutionReverb*>(this->module);
     assert(module);
 
     // Load IR File
     menu->addChild(construct<MenuLabel>());
-    //menu->addChild(construct<MenuLabel>(&MenuLabel::text, "Load IR file"));
-    menu->addChild(construct<ConvolutionReverbPanelStyleItem>(&MenuItem::text, "Load IR file",
-   	&ConvolutionReverbPanelStyleItem::module, module, &ConvolutionReverbPanelStyleItem::panelStyle, 0));
-   
+    menu->addChild(construct<MenuLabel>(&MenuLabel::text, "Load IR file"));    menu->addChild(construct<ConvolutionReverbPanelStyleItem>(&MenuItem::text, "Load IR file",
+  	&ConvolutionReverbPanelStyleItem::module, module, &ConvolutionReverbPanelStyleItem::panelStyle, 0));
+   }
+*/
 
-}
+/*	struct ConvolutionReverbItem : MenuItem {
+	ConvolutionReverb *ConvolutionReverb;
+	void onAction(EventAction &e) override {
+
+		std::string dir = ConvolutionReverb->lastPath.empty() ? assetLocal("") : stringDirectory(ConvolutionReverb->lastPath);
+		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, NULL);
+		
+			/ConvolutionReverb->loadSample(path);
+			ConvolutionReverb->samplePos = 0;
+			ConvolutionReverb->lastPath = path;
+			ConvolutionReverb->sliceIndex = -1;
+			free(path);
+			   springReverbInit(&springReverbIR,&springReverbIRLen); 
+
+			convolver->setKernel(springReverbIR,springReverbIRLen);  
+			delete [] springReverbIR;
+
+		
+	}
+*/	
+
+
+/* void ConvolutionReverbWidget::appendContextMenu(Menu *menu) {
+    ConvolutionReverb *module = dynamic_cast<ConvolutionReverb*>(this->module);
+    assert(module);
+
+    // Load IR File
+    menu->addChild(construct<MenuLabel>());
+    menu->addChild(construct<MenuLabel>(&MenuLabel::text, "Load IR file"));
+    menu->addChild(construct<ConvolutionReverbItem>(&MenuItem::text, "Load IR file",
+   	&ConvolutionReverbItem::module, module, &ConvolutionReverbItem::panelStyle, 0));
+
+	ConvolutionReverbItem *sampleItem = new ConvolutionReverbItem();
+	sampleItem->text = "Load sample";
+	sampleItem->ConvolutionReverb = ConvolutionReverb;
+	menu->addChild(sampleItem);
+	}
+*/
 
 
 Model *modelConvolutionReverb = Model::create<ConvolutionReverb, ConvolutionReverbWidget>("STS", "ConvolutionReverb", "Convolution Reverb", REVERB_TAG);

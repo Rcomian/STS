@@ -9,6 +9,7 @@ void init(rack::Plugin *p) {
 	p->version = TOSTRING(VERSION);
 	
 	p->addModel(modelswitch2to1x8);
-	p->addModel(modelConvolutionReverb);
+	//p->addModel(modelConvolutionReverb);
+	p->addModel(modelIlliad);
 	p->addModel(modelOdy);
 }

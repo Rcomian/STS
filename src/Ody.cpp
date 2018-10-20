@@ -14,7 +14,6 @@ struct Ody : Module
 		ENUMS(OFFSET_PARAM, 33),
 		ENUMS(SLIDER_PARAM, 33),
 		ENUMS(SWITCH_PARAM, 22),
-		
 		NUM_PARAMS
 	};
 	enum InputIds
@@ -46,7 +45,7 @@ struct Ody : Module
     const float lightLambda = 0.075f;
     float resetLight1 = 0.0f;
     float resetLight2 = 0.0f;
-	float out_[33];
+	float out_[34];
 
     int label_num1 = 0;
     int label_num2 = 0;
@@ -93,36 +92,27 @@ void Ody::step()
 	
 };
 
-
 struct OdyWidget : ModuleWidget {
     OdyWidget(Ody *module);
     void appendContextMenu(Menu *menu) override;
 };
 
-
 OdyWidget::OdyWidget(Ody *module) : ModuleWidget(module) {
 	
 	box.size = Vec(4 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
-	//setPanel(SVG::load(assetPlugin(plugin, "res/Ody.svg")));
-
-	
-    
 	DynamicPanelWidget *panel = new DynamicPanelWidget();
-	panel->addPanel(SVG::load(assetPlugin(plugin, "res/Ody_Black.svg")));
 	panel->addPanel(SVG::load(assetPlugin(plugin, "res/Ody_White.svg")));
+	panel->addPanel(SVG::load(assetPlugin(plugin, "res/Ody_Gold.svg")));
+	panel->addPanel(SVG::load(assetPlugin(plugin, "res/Ody_Black.svg")));
 	box.size = panel->box.size;
 	panel->mode = &module->panelStyle;
 	addChild(panel);
 	
-	
-		
-
 	addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
 	addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
 	addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
 	addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
-
 	
   	// Offset knobs top row
 
@@ -247,7 +237,6 @@ OdyWidget::OdyWidget(Ody *module) : ModuleWidget(module) {
 	addOutput(Port::create<PJ301MPort>(Vec(796, 340), Port::OUTPUT, module, Ody::OUT_OUTPUT_SW  + 18));
 	addOutput(Port::create<PJ301MPort>(Vec(850, 340), Port::OUTPUT, module, Ody::OUT_OUTPUT_SW  + 19));
 
-
 	// Octave 5 Way
 	addParam(ParamWidget::create<CKSSThree>(Vec(176,215), module, Ody::OCTAVE_PARAM, 0.0f, 4.0f, 2.0f));
 	// add Portamentp Slider
@@ -356,12 +345,13 @@ void OdyWidget::appendContextMenu(Menu *menu) {
     // Panel style
     menu->addChild(construct<MenuLabel>());
     menu->addChild(construct<MenuLabel>(&MenuLabel::text, "Odyssey Homage color"));
-    menu->addChild(construct<OdyPanelStyleItem>(&MenuItem::text, "Odyssey MKII Black",
+    menu->addChild(construct<OdyPanelStyleItem>(&MenuItem::text, "Original Odyssey 2800 White",
     	&OdyPanelStyleItem::module, module, &OdyPanelStyleItem::panelStyle, 0));
-    menu->addChild(construct<OdyPanelStyleItem>(&MenuItem::text, "Original Odyseey 2800 White",
+    menu->addChild(construct<OdyPanelStyleItem>(&MenuItem::text, "Odyssey MKII 2810 Black and Gold",
     	&OdyPanelStyleItem::module, module, &OdyPanelStyleItem::panelStyle, 1));
-
+	menu->addChild(construct<OdyPanelStyleItem>(&MenuItem::text, "Odyssey MKIII 2820 Black and Orange",
+    	&OdyPanelStyleItem::module, module, &OdyPanelStyleItem::panelStyle, 2));
 }
 
 
-Model *modelOdy = Model::create<Ody, OdyWidget>("STS", "Ody", "Illiad - Synth Controller", CONTROLLER_TAG);
+Model *modelOdy = Model::create<Ody, OdyWidget>("STS", "Ody", " - Ody - Synth Controller", CONTROLLER_TAG);

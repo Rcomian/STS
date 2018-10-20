@@ -9,8 +9,9 @@ using namespace rack;
 
 extern Plugin *plugin;
 
-extern Model *modelConvolutionReverb;
+//extern Model *modelConvolutionReverb;
 extern Model *modelOdy;
+extern Model *modelIlliad;
 extern Model *modelswitch2to1x8;
 
 
