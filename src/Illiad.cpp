@@ -323,7 +323,6 @@ IlliadWidget::IlliadWidget(Illiad *module) : ModuleWidget(module) {
 	addParam(ParamWidget::create<CKSS>(Vec(178, 57), module, Illiad::SWITCH_PARAM + 20, 0.0, 1.0, 0.0));
 	addParam(ParamWidget::create<CKSS>(Vec(265, 57), module, Illiad::SWITCH_PARAM + 21, 0.0, 1.0, 0.0));
 	addParam(ParamWidget::create<CKSS>(Vec(377, 57), module, Illiad::SWITCH_PARAM + 22, 0.0, 1.0, 0.0));
-
 };
 
 struct IlliadPanelStyleItem : MenuItem {
