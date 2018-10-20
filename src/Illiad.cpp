@@ -1,7 +1,7 @@
 #include "STS.hpp"
 #include "dsp/digital.hpp"
 #include "window.hpp"
-//#include "torpedo.hpp"
+
 
 struct Illiad : Module 
 {
@@ -352,6 +352,5 @@ void IlliadWidget::appendContextMenu(Menu *menu) {
 	menu->addChild(construct<IlliadPanelStyleItem>(&MenuItem::text, "Odyssey MKIII 2820 Black and Orange",
     	&IlliadPanelStyleItem::module, module, &IlliadPanelStyleItem::panelStyle, 2));
 }
-
 
 Model *modelIlliad = Model::create<Illiad, IlliadWidget>("STS", "Illiad", " - Illiad - Synth Controller", CONTROLLER_TAG);
