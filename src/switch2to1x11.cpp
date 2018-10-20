@@ -1,19 +1,10 @@
 #include "STS.hpp"
 
-struct switch2to1x8 : Module 
+struct switch2to1x11 : Module 
 {
 	enum ParamIds 
 	{
-        SWITCH1_PARAM,
-        SWITCH2_PARAM,
-        SWITCH3_PARAM,
-        SWITCH4_PARAM,
-        SWITCH5_PARAM,
-        SWITCH6_PARAM,
-        SWITCH7_PARAM,
-        SWITCH8_PARAM,
-
-		NUM_PARAMS
+        NUM_PARAMS
 	};
 	enum InputIds 
 	{
@@ -25,6 +16,9 @@ struct switch2to1x8 : Module
         INA6_INPUT,
         INA7_INPUT,
         INA8_INPUT,
+        INA9_INPUT,
+        INA10_INPUT,
+        INA11_INPUT,
 
         INB1_INPUT,
         INB2_INPUT,
@@ -34,6 +28,9 @@ struct switch2to1x8 : Module
         INB6_INPUT,
         INB7_INPUT,
         INB8_INPUT,
+        INB9_INPUT,
+        INB10_INPUT,
+        INB11_INPUT,
 
         CV1_INPUT,
         CV2_INPUT,
@@ -43,6 +40,9 @@ struct switch2to1x8 : Module
         CV6_INPUT,
         CV7_INPUT,
         CV8_INPUT,
+        CV9_INPUT,
+        CV10_INPUT,
+        CV11_INPUT,
 
 		NUM_INPUTS
 	};
@@ -56,10 +56,9 @@ struct switch2to1x8 : Module
         OUT6_OUTPUT,
         OUT7_OUTPUT,
         OUT8_OUTPUT,
-
-        SUMA_OUTPUT,
-        SUMB_OUTPUT,
-        SUM_OUTPUT,
+        OUT9_OUTPUT,
+        OUT10_OUTPUT,
+        OUT11_OUTPUT,
 
 		NUM_OUTPUTS
     };
@@ -70,7 +69,7 @@ struct switch2to1x8 : Module
 
     bool swState[8] = {};
     
-	switch2to1x8() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) 
+	switch2to1x11() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) 
 	{
 		reset();
 	}
@@ -79,14 +78,14 @@ struct switch2to1x8 : Module
 
     void reset() override 
     {
-        for (int i = 0; i < 8; i++) 
+        for (int i = 0; i < 11; i++) 
         {
             swState[i] = false;
 		}
 	}
     void randomize() override 
     {
-        for (int i = 0; i < 8; i++) 
+        for (int i = 0; i < 11; i++) 
         {
             swState[i] = (randomUniform() < 0.5);
 		}
@@ -96,7 +95,7 @@ struct switch2to1x8 : Module
     {
 		json_t *rootJ = json_object();
         json_t *swStatesJ = json_array();
-        for (int i = 0; i < 8; i++) 
+        for (int i = 0; i < 11; i++) 
         {
 			json_t *swStateJ = json_boolean(swState[i]);
             json_array_append_new(swStatesJ, swStateJ);
@@ -110,7 +109,7 @@ struct switch2to1x8 : Module
         json_t *swStatesJ = json_object_get(rootJ, "swStates");
         if (swStatesJ) 
         {
-            for (int i = 0; i < 8; i++) 
+            for (int i = 0; i < 11; i++) 
             {
 				json_t *stateJ = json_array_get(swStatesJ, i);
 				if (stateJ) {
@@ -121,47 +120,39 @@ struct switch2to1x8 : Module
 	}
 };
 
-///float attack = clamp(params[ATTACK_PARAM].value + inputs[ATTACK_INPUT].value / 10.0f, 0.0f, 1.0f);
-void switch2to1x8::step() 
+void switch2to1x11::step() 
 {
-    float outa = 0.;
-    float outb = 0.;
-    float out  = 0.;
-    for(int i = 0; i < 8; i++)
+    
+    for(int i = 0; i < 11; i++)
     {
-        swState[i] = params[SWITCH1_PARAM + i].value + inputs[CV1_INPUT + i].value;
+        swState[i] = inputs[CV1_INPUT + i].value;
         if ( !swState[i] ) {
             if(inputs[INA1_INPUT + i].active)
             {
                 float ina = inputs[INA1_INPUT + i].value;
                 outputs[OUT1_OUTPUT + i].value = ina;
-                outa += ina;
-                out += ina; 
+                
             }
         } else {
             if(inputs[INB1_INPUT + i].active)
             {
                 float inb = inputs[INB1_INPUT + i].value;
                 outputs[OUT1_OUTPUT + i].value = inb;
-                outb += inb;
-                out += inb; 
+                
             }
         } 
     }
-    outputs[SUMA_OUTPUT].value = outa;
-    outputs[SUMB_OUTPUT].value = outb;
-    outputs[SUM_OUTPUT].value = out;
 }
 
-struct switch2to1x8Widget : ModuleWidget { 
-    switch2to1x8Widget(switch2to1x8 *module) : ModuleWidget(module) 
+struct switch2to1x11Widget : ModuleWidget { 
+    switch2to1x11Widget(switch2to1x11 *module) : ModuleWidget(module) 
     {
         box.size = Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
 
         {
             auto *panel = new SVGPanel();
             panel->box.size = box.size;
-            panel->setBackground(SVG::load(assetPlugin(plugin, "res/switch2to1x8.svg")));
+            panel->setBackground(SVG::load(assetPlugin(plugin, "res/switch2to1x11.svg")));
             addChild(panel);
         }
         addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
@@ -175,24 +166,21 @@ struct switch2to1x8Widget : ModuleWidget {
         const float x3 = 5.+41.;
         const float x4 = 5.+62.;
 
-        float yPos = 18.;
+        float yPos = 22.;
 
-        for(int i = 0; i < 8; i++)
+        for(int i = 0; i < 11; i++)
         {
-            yPos += 32.;
-            addInput(Port::create<sts_Port>(Vec(x1, yPos), Port::INPUT, module, switch2to1x8::CV1_INPUT + i));
-            addInput(Port::create<sts_Port>(Vec(x2, yPos), Port::INPUT, module, switch2to1x8::INA1_INPUT + i));
-            //addParam(ParamWidget::create<sp_Switch>(Vec(x2+1, 3 + yPos), module, switch2to1x8::SWITCH1_PARAM + i, 0.0, 1.0, 0.0));
-            addInput(Port::create<sts_Port>(Vec(x3, yPos), Port::INPUT, module, switch2to1x8::INB1_INPUT + i));
-            addOutput(Port::create<sts_Port>(Vec(x4, yPos), Port::OUTPUT, module, switch2to1x8::OUT1_OUTPUT + i));
+            yPos += 27.;
+            addInput(Port::create<sts_Port>(Vec(x1, yPos), Port::INPUT, module, switch2to1x11::CV1_INPUT + i));
+            addInput(Port::create<sts_Port>(Vec(x2, yPos), Port::INPUT, module, switch2to1x11::INA1_INPUT + i));
+            addInput(Port::create<sts_Port>(Vec(x3, yPos), Port::INPUT, module, switch2to1x11::INB1_INPUT + i));
+            addOutput(Port::create<sts_Port>(Vec(x4, yPos), Port::OUTPUT, module, switch2to1x11::OUT1_OUTPUT + i));
         }
 
         yPos += 48.;
-        addOutput(Port::create<sts_Port>(Vec(x2, yPos), Port::OUTPUT, module, switch2to1x8::SUMA_OUTPUT));
-        addOutput(Port::create<sts_Port>(Vec(x3, yPos), Port::OUTPUT, module, switch2to1x8::SUMB_OUTPUT));
-        addOutput(Port::create<sts_Port>(Vec(x4, yPos), Port::OUTPUT, module, switch2to1x8::SUM_OUTPUT));
+       
     }
 
 };
 
-Model *modelswitch2to1x8 = Model::create<switch2to1x8,switch2to1x8Widget>("STS", "switch2to1x8", "2->1 x8 Switch - A/B Switch", SWITCH_TAG, MIXER_TAG);
+Model *modelswitch2to1x11 = Model::create<switch2to1x11,switch2to1x11Widget>("STS", "switch2to1x11", "2 -> 1 x 11 Switch - A/B Switch", SWITCH_TAG, MIXER_TAG);

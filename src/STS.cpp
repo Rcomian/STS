@@ -8,8 +8,8 @@ void init(rack::Plugin *p) {
 	plugin->slug = TOSTRING(SLUG);
 	p->version = TOSTRING(VERSION);
 	
-	p->addModel(modelswitch2to1x8);
+	p->addModel(modelswitch2to1x11);
 	//p->addModel(modelConvolutionReverb);
 	p->addModel(modelIlliad);
-	p->addModel(modelOdy);
+	//p->addModel(modelOdy);
 }
