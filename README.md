@@ -8,7 +8,7 @@ Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the 
 The switch is a modified version of SouthPoles Manual Switch, Abr. It adds 3 more switches, so 2 will cover the 22 switch outputs on the Illiad, and makes them CV controllable.
 The Illiad has 3 'Homage to the Odyssey' skins if you right click
 
-I can't thank Jim Tupper enough for his help getting me going on this, and Omri Cohen's help along the way, plus a thanks to all the VCV Rack developers whose code sneaked into thiese modules, and to Andrew Belt for the wonderful VCV Rack!
+I can't thank Jim Tupper enough for his help getting me going on this, and Omri Cohen's help along the way, plus a thanks to all the VCV Rack developers whose code sneaked into these modules, and to Andrew Belt for the wonderful VCV Rack!
 
 Quick docs to get you started:
 
