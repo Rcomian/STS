@@ -32,7 +32,6 @@ The last 3 outputs are for:
   The Octave switch, 2 octaves up, and 2 octave down from center.
   The Portamento Slider, 
   The Pitch Bend knob, 0 to 2 Volts
-  
 
 
 
