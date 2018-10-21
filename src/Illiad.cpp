@@ -7,12 +7,13 @@ struct Illiad : Module
 {
 	enum ParamIds
 	{
-		PITCHBEND_PARAM,
-		PORTA_PARAM,
 		OCTAVE_PARAM,
+		PORTA_PARAM,
+		PITCHBEND_PARAM,
 
-		ENUMS(OFFSET_PARAM, 33),
-		ENUMS(SLIDER_PARAM, 33),
+
+		ENUMS(OFFSET_PARAM, 34),
+		ENUMS(SLIDER_PARAM, 34),
 		ENUMS(SWITCH_PARAM, 22),
 		NUM_PARAMS
 	};
@@ -23,12 +24,13 @@ struct Illiad : Module
 	
 	enum OutputIds {
 		// Sliders
-		ENUMS(OUT_OUTPUT, 33),
+		ENUMS(OUT_OUTPUT, 34),
 
 		// Pitch,Ports,Octave
-		OUT_OUTPUT_PITCHBEND,
-		OUT_OUTPUT_PORTA,
-		OUT_OUTPUT_OCTAVE,
+		OUT1_OUTPUT_OCTAVE,
+		OUT1_OUTPUT_PORTA,
+		OUT1_OUTPUT_PITCHBEND,
+		
 		//switches
 		ENUMS(OUT_OUTPUT_SW, 22),
      	NUM_OUTPUTS
@@ -50,7 +52,7 @@ struct Illiad : Module
     int label_num1 = 0;
     int label_num2 = 0;
 	
-	int panelStyle 		= 0;
+	int panelStyle = 1;
 	
 	Illiad() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
 	
@@ -65,15 +67,16 @@ struct Illiad : Module
 
 void Illiad::step()
 {
-	resetLight1 -= resetLight1 / lightLambda / engineGetSampleRate();
-    lights[TRIGGER_LED_1].value = resetLight1;
-	
-	// Pitch bend
-	outputs[OUT_OUTPUT_PITCHBEND].value = params[PITCHBEND_PARAM].value;
-	// Portamento
-	outputs[OUT_OUTPUT_PORTA].value = params[PORTA_PARAM].value;
+	//resetLight1 -= resetLight1 / lightLambda / engineGetSampleRate();
+    //lights[TRIGGER_LED_1].value = resetLight1;
 	// Octave Switch
-	outputs[OUT_OUTPUT_OCTAVE].value = params[OCTAVE_PARAM].value;
+	outputs[OUT1_OUTPUT_OCTAVE].value = params[OCTAVE_PARAM].value;
+	// Portamento
+	outputs[OUT1_OUTPUT_PORTA].value = params[PORTA_PARAM].value;
+	// Pitch bend
+	outputs[OUT1_OUTPUT_PITCHBEND].value = params[PITCHBEND_PARAM].value;
+	
+	
 
 	// Sliders attenuverters Top + Bottom Row
 
@@ -203,9 +206,16 @@ IlliadWidget::IlliadWidget(Illiad *module) : ModuleWidget(module) {
 	addOutput(Port::create<PJ301MPort>(Vec(105, 172), Port::OUTPUT, module, Illiad::OUT_OUTPUT + 32));
 	addOutput(Port::create<PJ301MPort>(Vec(105, 210), Port::OUTPUT, module, Illiad::OUT_OUTPUT + 33));
 
-	addOutput(Port::create<PJ301MPort>(Vec(105, 248), Port::OUTPUT, module, Illiad::OUT_OUTPUT_OCTAVE));
-	addOutput(Port::create<PJ301MPort>(Vec(105, 286), Port::OUTPUT, module, Illiad::OUT_OUTPUT_PITCHBEND));
-	addOutput(Port::create<PJ301MPort>(Vec(105, 324), Port::OUTPUT, module, Illiad::OUT_OUTPUT_PORTA));
+	addOutput(Port::create<PJ301MPort>(Vec(105, 248), Port::OUTPUT, module, Illiad::OUT1_OUTPUT_OCTAVE));
+	addOutput(Port::create<PJ301MPort>(Vec(105, 286), Port::OUTPUT, module, Illiad::OUT1_OUTPUT_PORTA));
+	addOutput(Port::create<PJ301MPort>(Vec(105, 324), Port::OUTPUT, module, Illiad::OUT1_OUTPUT_PITCHBEND));
+	
+	// Octave 5 Way
+	addParam(ParamWidget::create<CKSSThree>(Vec(176,215), module, Illiad::OCTAVE_PARAM, 0.0f, 4.0f, 2.0f));
+	// add Portamentp Slider
+	addParam(ParamWidget::create<sts_SlidePotBlack>(Vec(145, 184), module, Illiad::PORTA_PARAM, 0.0, 10.0, 0.0)); 
+	// Add Pitch Bend Knob
+	addParam(ParamWidget::create<sts_Davies47_Grey>(Vec(147, 280), module, Illiad::PITCHBEND_PARAM, 0.0, 2.0, 1.0));
 	
 	// Add Switch Outputs
 	addOutput(Port::create<PJ301MPort>(Vec(128, 340), Port::OUTPUT, module, Illiad::OUT_OUTPUT_SW  + 20));
@@ -237,12 +247,7 @@ IlliadWidget::IlliadWidget(Illiad *module) : ModuleWidget(module) {
 	addOutput(Port::create<PJ301MPort>(Vec(796, 340), Port::OUTPUT, module, Illiad::OUT_OUTPUT_SW  + 18));
 	addOutput(Port::create<PJ301MPort>(Vec(850, 340), Port::OUTPUT, module, Illiad::OUT_OUTPUT_SW  + 19));
 
-	// Octave 5 Way
-	addParam(ParamWidget::create<CKSSThree>(Vec(176,215), module, Illiad::OCTAVE_PARAM, 0.0f, 4.0f, 2.0f));
-	// add Portamentp Slider
-	addParam(ParamWidget::create<sts_SlidePotBlack>(Vec(145, 184), module, Illiad::PITCHBEND_PARAM, 0.0, 10.0, 0.0)); 
-	// Add Pitch Bend Knob
-	addParam(ParamWidget::create<sts_Davies47_Grey>(Vec(147, 280), module, Illiad::PORTA_PARAM, 0.0, 2.0, 1.0));
+	
    	
 	// Add sliders Top Row
 	
