@@ -1,5 +1,5 @@
 SLUG = STS
-VERSION = 0.6.0.1
+VERSION = 0.6.0.2
 
 SOURCES += $(wildcard src/*.cpp)
 SOURCES += $(wildcard src/*.c)
@@ -8,4 +8,3 @@ DISTRIBUTABLES += $(wildcard LICENSE*) res
 
 RACK_DIR ?= ../..
 include $(RACK_DIR)/plugin.mk
-

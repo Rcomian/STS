@@ -55,8 +55,7 @@ struct Illiad : Module
 	int panelStyle = 1;
 	
 	Illiad() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) {}
-	
-	
+		
 	void step() override;
 
 	struct IlliadWidget : ModuleWidget {
