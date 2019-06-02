@@ -1,3 +1,10 @@
+src_hold
 build
+dist
+docs
+hold-old src
+jim
+res_hold
 plugin.so
+plugin.dll
 .vscode/ipch
