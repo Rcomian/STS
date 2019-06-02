@@ -1,6 +1,12 @@
+FIRST V1 commit, compile at your own risk, API is still in flux, even though it was supposed to be stable ;(  wait til this line goes away to be safe...
+
+
+V1 Documentation to follow.....
+
+
 STS
 
-New VCV Rack modules.
+New VCV Rack modules for V6.2.
 
 Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
 
