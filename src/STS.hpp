@@ -1,224 +1,232 @@
-#ifndef STS_HPP
-#define STS_HPP
-
-#include "rack.hpp"
 #include "window.hpp"
+#include "rack.hpp"
+
 
 using namespace rack;
 
-extern Plugin *plugin;
+extern Plugin *pluginInstance;
 
-//extern Model *modelConvolutionReverb;
-//extern Model *modelOdy;
+extern Model *modelSwitch2to1x11;
+extern Model *modelOdyssey;
 extern Model *modelIlliad;
-extern Model *modelswitch2to1x11;
+extern Model *modelPolySEQ16;
+extern Model *modelRingModulator;
+extern Model *modelWaveFolder;
+extern Model *modelVU_Poly;
+//extern Model *modelLFOPoly;
 
 
-////////////////////
-// module widgets
-////////////////////
+//extern Model *modelMidiFile;
+extern Model *modelMixer8;
+//extern Model *modelSEQEXP;
+//extern Model *modelOdy;
+//extern Model *modelOdyssey;
 
-// Dynamic Panel
+#define MAX_POLY_CHANNELS 16
 
-enum DynamicViewMode {
-    ACTIVE_HIGH_VIEW,
-    ACTIVE_LOW_VIEW,
-    ALWAYS_ACTIVE_VIEW
+static constexpr float g_audioPeakVoltage = 10.f;
+static constexpr float g_controlPeakVoltage = 5.f;
+
+// General constants
+static const float lightLambda = 0.075f;
+static const bool clockIgnoreOnRun = false;
+static const bool retrigGatesOnReset = true;
+static constexpr float clockIgnoreOnResetDuration = 0.001f;// disable clock on powerup and reset for 1 ms (so that the first step plays)
+static const int displayAlpha = 23;
+static const std::string lightPanelID = "Classic";
+static const std::string darkPanelID = "Dark-valor";
+static const unsigned int displayRefreshStepSkips = 256;
+static const unsigned int userInputsStepSkipMask = 0xF;// sub interval of displayRefreshStepSkips, since inputs should be more responsive than lights
+// above value should make it such that inputs are sampled > 1kHz so as to not miss 1ms triggers
+
+// Component offset constants
+
+static const int hOffsetCKSS = 5;
+static const int vOffsetCKSS = 2;
+static const int vOffsetCKSSThree = -2;
+static const int hOffsetCKSSH = 2;
+static const int vOffsetCKSSH = 5;
+static const int offsetCKD6 = -1;//does both h and v
+static const int offsetCKD6b = 0;//does both h and v
+static const int vOffsetDisplay = -2;
+static const int offsetIMBigKnob = -6;//does both h and v
+static const int offsetIMSmallKnob = 0;//does both h and v
+static const int offsetMediumLight = 9;
+static const float offsetLEDbutton = 3.0f;//does both h and v
+static const float offsetLEDbuttonLight = 4.4f;//does both h and v
+static const int offsetTL1105 = 4;//does both h and v
+static const int offsetLEDbezel = 1;//does both h and v
+static const float offsetLEDbezelLight = 2.2f;//does both h and v
+static const float offsetLEDbezelBig = -11;//does both h and v
+static const int offsetTrimpot = 3;//does both h and v
+static const float blurRadiusRatio = 0.06f;
+
+
+
+
+/*
+////////////////////////
+//   IM widgets   //
+////////////////////////
+
+
+
+
+// Other functions
+
+inline bool calcWarningFlash(long count, long countInit) {
+	if ( (count > (countInit * 2l / 4l) && count < (countInit * 3l / 4l)) || (count < (countInit * 1l / 4l)) )
+		return false;
+	return true;
+}	
+
+NVGcolor prepareDisplay(NVGcontext *vg, Rect *box, int fontSize);
+
+void printNote(float cvVal, char* text, bool sharp);
+
+int moveIndex(int index, int indexNext, int numSteps);
+
 };
-// old
-struct PanelBorderWidget : TransparentWidget {
-	void draw(NVGcontext *vg) override;
-};
+*/
 
-struct DynamicPanelWidget : FramebufferWidget {
-    int* mode;
-    int oldMode;
-    std::vector<std::shared_ptr<SVG>> panels;
-    SVGWidget* visiblePanel;
-    PanelBorderWidget* border;
-
-    DynamicPanelWidget();
-    void addPanel(std::shared_ptr<SVG> svg);
-    void step() override;
-};
-
-struct DynamicSVGPanel : FramebufferWidget { // like SVGPanel (in app.hpp and SVGPanel.cpp) but with dynmically assignable panel
-    int* mode;
-    int oldMode;
-	std::vector<std::shared_ptr<SVG>> panels;
-    SVGWidget* visiblePanel;
-    PanelBorderWidget* border;
-    DynamicSVGPanel();
-    void addPanel(std::shared_ptr<SVG> svg);
-    void step() override;
-};
-
-
-
-// for text display
-
-struct BigLEDBezel : SVGSwitch, MomentarySwitch {
-        BigLEDBezel() {
-                addFrame(SVG::load(assetPlugin(plugin, "res/as_bigLEDBezel.svg")));
-        }
-};
-
-struct Knurlie : SVGScrew {
-	Knurlie() {
-		sw->svg = SVG::load(assetPlugin(plugin, "res/Knurlie.svg"));
-		sw->wrap();
-		box.size = sw->box.size;
+struct stsBigPushButton : app::SVGSwitch 
+{
+	stsBigPushButton() 
+	{
+		momentary = true;
+		
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dark/comp/CKD6b_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dark/comp/CKD6b_1.svg")));	
 	}
 };
-// Befaco Slide Pots
+////////////////////////
+//      Knobs         //
+////////////////////////
 
-
-
-struct stsB_SlidePotBlack : SVGSlider {
-	stsB_SlidePotBlack() {
-		Vec margin = Vec(3.5, 3.5);
-		maxHandlePos = Vec(-1, -2).plus(margin);
-		minHandlePos = Vec(-1, 87).plus(margin);
-		setSVGs(SVG::load(assetGlobal("res/ComponentLibrary/BefacoSlidePot.svg")), SVG::load(assetGlobal("res/BefacoSlidePotHandle.svg")));
-		background->box.pos = margin;
-		box.size = background->box.size.plus(margin.mult(2));
-	}
-};
-
-struct stsB_SlidePotRed : SVGSlider {
-	stsB_SlidePotRed() {
-		Vec margin = Vec(3.5, 3.5);
-		maxHandlePos = Vec(-1, -2).plus(margin);
-		minHandlePos = Vec(-1, 87).plus(margin);
-		setSVGs(SVG::load(assetGlobal("res/ComponentLibrary/BefacoSlidePot.svg")), SVG::load(assetGlobal("res/stsB-SlidePotHandleBlack.svg")));
-		background->box.pos = margin;
-		box.size = background->box.size.plus(margin.mult(2));
-	}
-};
-
-struct sts_Port : SVGPort {
-	sts_Port() {
-		setSVG(SVG::load(assetPlugin(plugin, "res/sts-Port20.svg")));
-	}
-};
-
-struct sts_Switch : SVGSwitch, ToggleSwitch {
+struct sts_Switch : app::SVGSwitch {
 	sts_Switch() {
-		addFrame(SVG::load(assetPlugin(plugin,"res/sts-switchv_0.svg")));
-		addFrame(SVG::load(assetPlugin(plugin,"res/sts-switchv_1.svg")));
-	}
-};
-struct as_CKSS : SVGSwitch, ToggleSwitch {
-	as_CKSS() {
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_CKSS_0.svg")));
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_CKSS_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-switchv_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-switchv_1.svg")));
 	}
 };
 
-struct as_CKSSH : SVGSwitch, ToggleSwitch {
-	as_CKSSH() {
-		addFrame(SVG::load(assetPlugin(plugin, "res/as_CKSSH_0.svg")));
-		addFrame(SVG::load(assetPlugin(plugin, "res/as_CKSSH_1.svg")));
-		sw->wrap();
-		box.size = sw->box.size;
-	}
-};
-
-struct as_CKSSThree : SVGSwitch, ToggleSwitch {
-	as_CKSSThree() {
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_CKSSThree_2.svg")));
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_CKSSThree_1.svg")));
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_CKSSThree_0.svg")));
-	}
-};
-
-struct as_MuteBtn : SVGSwitch, ToggleSwitch {
-	as_MuteBtn() {
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_mute-off.svg")));
-		addFrame(SVG::load(assetPlugin(plugin,"res/as_mute-on.svg")));
-	}
-};
-
-
-/////////
-struct as_PJ301MPort : SVGPort {
-	as_PJ301MPort() {
-		setSVG(SVG::load(assetPlugin(plugin,"res/as-PJ301M.svg")));
-		//background->svg = SVG::load(assetPlugin(plugin,"res/as-PJ301M.svg"));
-		//background->wrap();
-		//box.size = background->box.size;
-	}
-};
-
-struct as_SlidePot : SVGFader {
-	as_SlidePot() {
-		Vec margin = Vec(4, 4);
-		maxHandlePos = Vec(-1.5, -8).plus(margin);
-		minHandlePos = Vec(-1.5, 87).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin,"res/as-SlidePot.svg"));
-		background->wrap();
-		background->box.pos = margin;
-		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin,"res/as-SlidePotHandle.svg"));
-		handle->wrap();
-	}
-};
-
-struct as_FaderPot : SVGFader {
-	as_FaderPot() {
-		Vec margin = Vec(4, 4);
-		maxHandlePos = Vec(-1.5, -8).plus(margin);
-		minHandlePos = Vec(-1.5, 57).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin,"res/as-FaderPot.svg"));
-		background->wrap();
-		background->box.pos = margin;
-		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin,"res/as-SlidePotHandle.svg"));
-		handle->wrap();
-	}
-};
-///////////////////////
-// Knobs             //
-///////////////////////
-
-//  15 px trimpot
-struct sts_Trimpot_Black : SVGKnob {
-	sts_Trimpot_Black() {
-		minAngle = -0.75*M_PI;
-		maxAngle = 0.75*M_PI;
-		setSVG(SVG::load(assetPlugin(plugin,"res/sts-Trimpot_Black.svg")));
-	}
-};
-struct sts_Trimpot_Grey : SVGKnob {
+struct sts_Trimpot_Grey : app::SVGKnob {
 	sts_Trimpot_Grey() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSVG(SVG::load(assetPlugin(plugin,"res/sts-Trimpot_Grey.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-Trimpot_Grey.svg")));
 	}
 };
-struct sts_Davies47_Grey : SVGKnob {
+
+/*
+//  15 px trimpot
+struct sts_Trimpot_Black : app::SVGKnob {
+	sts_Trimpot_Black() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-Trimpot_Black.svg")));
+	}
+};
+*/
+
+struct sts_Davies15_Grey : app::SVGKnob {
+	sts_Davies15_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_15.svg")));
+	}
+};
+
+struct sts_Davies47_Grey : app::SVGKnob {
 	sts_Davies47_Grey() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSVG(SVG::load(assetPlugin(plugin,"res/sts_Davies1900_Grey_47_47.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_47.svg")));
 	}
 };
 
-///////////////////////
-// Conbo Output-Knob //
-///////////////////////
-
-struct sts_PJ301Port : SVGPort {
-	sts_PJ301Port() {
-		setSVG(SVG::load(assetPlugin(plugin,"res/PJ301C.svg")));
-	}
-};
-
-struct sts_PJ301Knob : SVGKnob {
-	sts_PJ301Knob() {
+struct sts_Davies_snap_47_Grey : app::SVGKnob {
+	sts_Davies_snap_47_Grey() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSVG(SVG::load(assetPlugin(plugin,"res/PJ301O.svg")));
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_47.svg")));
+	}
+};
+//sts_Davies_snap_37_Grey
+struct sts_Davies_snap_37_Grey : app::SVGKnob {
+	sts_Davies_snap_37_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_37.svg")));
+	}
+};
+struct sts_Davies_37_Grey : app::SVGKnob {
+	sts_Davies_37_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_37.svg")));
+	}
+};
+
+
+struct sts_BigSnapKnob : app::SVGKnob
+{
+    sts_BigSnapKnob()
+    {
+		box.size = Vec(54, 54);
+        minAngle = -0.75 * M_PI;
+        maxAngle = 0.75 * M_PI;
+        setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/bigknob.svg")));
+        snap = true;
+		smooth = false;
+    }
+};
+
+struct stsLEDButton : app::SvgSwitch {
+	stsLEDButton() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/stsLEDButton.svg")));
+	}
+};
+struct stsLEDButton1 : app::SvgSwitch {
+	stsLEDButton1() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/stsLEDButton.svg")));
+	}
+};
+struct sts_CKSS : app::SVGSwitch {
+	sts_CKSS() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS_0.svg")));
+	}
+};
+
+struct sts_CKSS3 : app::SVGSwitch {
+	sts_CKSS3() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_2.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_0.svg")));
+	}
+};
+
+struct sts_CKSS4 : app::SVGSwitch {
+	sts_CKSS4() {
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_3.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_2.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_1.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_CKSS4_0.svg")));
+	}
+};
+
+/////////
+
+struct sts_Port : SVGPort {
+	sts_Port() {
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-Port18.svg")));
+		
 	}
 };
 
@@ -226,135 +234,145 @@ struct sts_PJ301Knob : SVGKnob {
 //slider
 ///////////////////
 
-struct sts_SlidePotPink : SVGFader
+/*
+struct BefacoSlidePot : app::SvgSlider {
+	BefacoSlidePot() {
+		math::Vec margin = math::Vec(3.5, 3.5);
+		maxHandlePos = math::Vec(-1, -2).plus(margin);
+		minHandlePos = math::Vec(-1, 87).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoSlidePot.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoSlidePotHandle.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+	}
+};
+*/
+
+/** Based on the size of 3mm LEDs */
+template <typename BASE>
+struct stsMediumLight : BASE {
+	stsMediumLight() {
+		this->box.size = app::mm2px(math::Vec(2.75, 2.75));
+	}
+};
+
+
+struct sts_SlidePotPink : app::SVGSlider
 {
 	sts_SlidePotPink()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderPinkHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderPinkHandle.svg"));
-		handle->wrap();
 	}
 };
 
-struct sts_SlidePotBlack : SVGFader
+
+struct sts_SlidePotBlack : app::SVGSlider
 {
 	sts_SlidePotBlack()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderBlackHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderBlackHandle.svg"));
-		handle->wrap();
 	}
 };
 
-struct sts_SlidePotWhite : SVGFader
+struct sts_SlidePotTeal : app::SVGSlider
+{
+	sts_SlidePotTeal()
+	{
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderTealHandle.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+		
+	}
+};
+
+
+struct sts_SlidePotWhite : app::SVGSlider
 {
 	sts_SlidePotWhite()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderWhiteHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderWhiteHandle.svg"));
-		handle->wrap();
 	}
 };
 
-struct sts_SlidePotGreen : SVGFader
+struct sts_SlidePotGreen : app::SVGSlider
 {
 	sts_SlidePotGreen()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderGreenHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderGreenHandle.svg"));
-		handle->wrap();
+		
 	}
 };
 
-struct sts_SlidePotRed : SVGFader
+struct sts_SlidePotRed : app::SVGSlider
 {
 	sts_SlidePotRed()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderRedHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderRedHandle.svg"));
-		handle->wrap();
+		
 	}
 };
 
-struct sts_SlidePotBlue : SVGFader
+struct sts_SlidePotBlue : app::SVGSlider
 {
 	sts_SlidePotBlue()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderBlueHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderBlueHandle.svg"));
-		handle->wrap();
 	}
 };
 
-struct sts_SlidePotYellow : SVGFader
+struct sts_SlidePotYellow : app::SVGSlider
 {
 	sts_SlidePotYellow()
 	{
-		Vec margin = Vec(0, 0);
-		maxHandlePos = Vec(8, 0).plus(margin);
-		minHandlePos = Vec(8, 67).plus(margin);
-		background->svg = SVG::load(assetPlugin(plugin, "res/LEDSlider.svg"));
-		background->wrap();
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(8, 0).plus(margin);
+		minHandlePos = math::Vec(8, 67).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSlider.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderYellowHandle.svg")));
 		background->box.pos = margin;
 		box.size = background->box.size.plus(margin.mult(2));
-		handle->svg = SVG::load(assetPlugin(plugin, "res/LEDSliderYellowHandle.svg"));
-		handle->wrap();
 	}
 };
 
-template <typename T> int sign(T val) {
-    return (T(0) < val) - (val < T(0));
-}
 
-
-////////////////////
-// Additional GUI stuff
-////////////////////
-
-
-
-#ifdef DEBUG
-  #define dbgPrint(a) printf a
-#else
-  #define dbgPrint(a) (void)0
-#endif
-
-
-#endif
 

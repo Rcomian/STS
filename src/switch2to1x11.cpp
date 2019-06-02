@@ -1,7 +1,9 @@
-#include "STS.hpp"
+#include "sts.hpp"
 
+using namespace std;
+using namespace rack;
 
-struct switch2to1x11 : Module 
+struct Switch2to1x11 : Module 
 {
 	enum ParamIds 
 	{
@@ -9,58 +11,16 @@ struct switch2to1x11 : Module
 	};
 	enum InputIds 
 	{
-        INA1_INPUT,
-        INA2_INPUT,
-        INA3_INPUT,
-        INA4_INPUT,
-        INA5_INPUT,
-        INA6_INPUT,
-        INA7_INPUT,
-        INA8_INPUT,
-        INA9_INPUT,
-        INA10_INPUT,
-        INA11_INPUT,
-
-        INB1_INPUT,
-        INB2_INPUT,
-        INB3_INPUT,
-        INB4_INPUT,
-        INB5_INPUT,
-        INB6_INPUT,
-        INB7_INPUT,
-        INB8_INPUT,
-        INB9_INPUT,
-        INB10_INPUT,
-        INB11_INPUT,
-
-        CV1_INPUT,
-        CV2_INPUT,
-        CV3_INPUT,
-        CV4_INPUT,
-        CV5_INPUT,
-        CV6_INPUT,
-        CV7_INPUT,
-        CV8_INPUT,
-        CV9_INPUT,
-        CV10_INPUT,
-        CV11_INPUT,
+        ENUMS(INA_INPUT, 11),
+        ENUMS(INB_INPUT, 11),
+        ENUMS(CV_INPUT,11),
 
 		NUM_INPUTS
 	};
 	enum OutputIds 
 	{
-        OUT1_OUTPUT,
-        OUT2_OUTPUT,
-        OUT3_OUTPUT,
-        OUT4_OUTPUT,
-        OUT5_OUTPUT,
-        OUT6_OUTPUT,
-        OUT7_OUTPUT,
-        OUT8_OUTPUT,
-        OUT9_OUTPUT,
-        OUT10_OUTPUT,
-        OUT11_OUTPUT,
-
+        ENUMS(OUT_OUTPUT, 11),
+        
 		NUM_OUTPUTS
     };
     enum LightIds 
@@ -68,98 +28,163 @@ struct switch2to1x11 : Module
 		NUM_LIGHTS
 	};
 
-    bool swState[8] = {};
+    bool swState[11] = {};
+    int panelStyle = 1;
     
-	switch2to1x11() : Module(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS) 
-	{
-		reset();
-	}
-
-    void step() override;
-
-    void reset() override 
+	Switch2to1x11() 
     {
-        for (int i = 0; i < 11; i++) 
-        {
-            swState[i] = false;
-		}
-	}
-    void randomize() override 
-    {
-        for (int i = 0; i < 11; i++) 
-        {
-            swState[i] = (randomUniform() < 0.5);
-		}
+        // Configure the module
+        config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+        // Configure parameters
+		// See engine/Param.hpp for config() arguments
     }
-    
-    json_t *toJson() override 
-    {
+
+    json_t *dataToJson() override
+	{
 		json_t *rootJ = json_object();
-        json_t *swStatesJ = json_array();
-        for (int i = 0; i < 11; i++) 
-        {
-			json_t *swStateJ = json_boolean(swState[i]);
-            json_array_append_new(swStatesJ, swStateJ);
-		}
-        json_object_set_new(rootJ, "swStates", swStatesJ);
+
+		json_object_set_new(rootJ, "panelStyle", json_integer(panelStyle));
 		return rootJ;
 	}
 
-    void fromJson(json_t *rootJ) override 
-    {
-        json_t *swStatesJ = json_object_get(rootJ, "swStates");
-        if (swStatesJ) 
-        {
-            for (int i = 0; i < 11; i++) 
-            {
-				json_t *stateJ = json_array_get(swStatesJ, i);
-				if (stateJ) {
-					swState[i] = json_boolean_value(stateJ);
-                }
-			}
-        }
+	void dataFromJson(json_t *rootJ) override
+	{
+		json_t *panelStyleJ = json_object_get(rootJ, "panelStyle");
+		if (panelStyleJ)
+			panelStyle = json_integer_value(panelStyleJ);
 	}
+
+    
+    
+    void process(const ProcessArgs &args) override
+    {
+        int channels = 1;
+        for (int i = 0; i < 11; i++)
+        {
+            float out[16] = {};
+            //float outa[16] = {};
+            //float outb[16] = {}; 
+                        
+            if (inputs[INA_INPUT + i].isConnected() && inputs[INB_INPUT + i].isConnected() && inputs[CV_INPUT + i].isConnected() && outputs[OUT_OUTPUT + i].isConnected())
+            {
+                //outa = inputs[INA_INPUT + i].getPolyVoltage(i);
+                channels = inputs[CV_INPUT + i].getChannels();
+            
+
+                if  (inputs[CV_INPUT + i].isConnected())
+                {
+                    swState[i] = inputs[CV_INPUT + i].getPolyVoltage(i);
+                }
+                else
+                {
+                    //swState[i] = inputs[CV_INPUT + (i - 1)].getVoltage();
+                    //swState[i] = inputs[CV_INPUT + i].getVoltage();
+                    swState[i] = swState[i - 1];
+                }
+
+                //if (inputs[INB_INPUT + i].isConnected())
+                //{
+                //    outb = inputs[INB_INPUT + i].getPolyVoltage(i);
+                 //   channels = inputs[INB_INPUT + i].getChannels();
+               // }
+                              
+               // outputs[OUT_OUTPUT + i].setChannels(channels);
+               // if (swState[i])
+                //{
+                    //outputs[OUT_OUTPUT + i].writeVoltages(inputs[INA_INPUT + i].getPolyVoltage(i));
+               //     out = inputs[INA_INPUT + i].getPolyVoltage(i));  
+               // }
+               // else
+               // {
+               //     out = inputs[INB_INPUT + i].getPolyVoltage(i));
+               // }
+               // outputs[OUT_OUTPUT + i].writeVoltages(out)
+            out[i] = swState[i] ? inputs[INA_INPUT + i].getPolyVoltage(i) : inputs[INB_INPUT + i].getPolyVoltage(i);
+            //outputs[OUT_OUTPUT + i].writeVoltages(swState[i] ? inputs[INA_INPUT + i].getPolyVoltage(i) : inputs[INB_INPUT + i].getPolyVoltage(i));                
+            outputs[OUT_OUTPUT + i].writeVoltages(out);
+            }
+        }
+    }
+
+    
+    
+    
 };
 
-void switch2to1x11::step() 
+struct Switch2to1x11Widget : ModuleWidget 
 {
-    
-    for(int i = 0; i < 11; i++)
-    {
-        swState[i] = inputs[CV1_INPUT + i].value;
-        if ( !swState[i] ) {
-            if(inputs[INA1_INPUT + i].active)
-            {
-                float ina = inputs[INA1_INPUT + i].value;
-                outputs[OUT1_OUTPUT + i].value = ina;
-                
-            }
-        } else {
-            if(inputs[INB1_INPUT + i].active)
-            {
-                float inb = inputs[INB1_INPUT + i].value;
-                outputs[OUT1_OUTPUT + i].value = inb;
-                
-            }
-        } 
-    }
-}
+    SvgPanel *goldPanel;
+	SvgPanel *blackPanel;
+	SvgPanel *whitePanel;
 
-struct switch2to1x11Widget : ModuleWidget { 
-    switch2to1x11Widget(switch2to1x11 *module) : ModuleWidget(module) 
-    {
-        box.size = Vec(6 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT);
+	struct panelStyleItem : MenuItem
+	{
+		Switch2to1x11 *module;
+		int theme;
+		void onAction(const event::Action &e) override
+		{
+			module->panelStyle = theme;
+		}
+		void step() override
+		{
+			rightText = (module->panelStyle == theme) ? "✔" : "";
+		}
+	};
 
-        {
-            auto *panel = new SVGPanel();
-            panel->box.size = box.size;
-            panel->setBackground(SVG::load(assetPlugin(plugin, "res/switch2to1x11.svg")));
-            addChild(panel);
-        }
-        addChild(Widget::create<ScrewSilver>(Vec(15, 0)));
-	    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 0)));
-	    addChild(Widget::create<ScrewSilver>(Vec(15, 365)));
-	    addChild(Widget::create<ScrewSilver>(Vec(box.size.x - 30, 365)));
+	void appendContextMenu(Menu *menu) override
+	{
+		Switch2to1x11 *module = dynamic_cast<Switch2to1x11 *>(this->module);
+
+		MenuLabel *spacerLabel = new MenuLabel();
+		menu->addChild(spacerLabel);
+
+		//assert(module);
+
+		MenuLabel *themeLabel = new MenuLabel();
+		themeLabel->text = "Panel Theme";
+		menu->addChild(themeLabel);
+
+		panelStyleItem *goldItem = new panelStyleItem();
+		goldItem->text = "Bkack & Gold";
+		goldItem->module = module;
+		goldItem->theme = 0;
+		menu->addChild(goldItem);
+
+		panelStyleItem *blackItem = new panelStyleItem();
+		blackItem->text = "Black & Orange";
+		blackItem->module = module;
+		blackItem->theme = 1;
+		menu->addChild(blackItem);
+
+		panelStyleItem *whiteItem = new panelStyleItem();
+		whiteItem->text = "White & Black";
+		whiteItem->module = module;
+		whiteItem->theme = 2;
+		menu->addChild(whiteItem);
+	}
+
+    Switch2to1x11Widget(Switch2to1x11 *module) 
+    {
+        setModule(module);
+        //setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switch2to1x11.svg")));
+
+        goldPanel = new SvgPanel();
+        goldPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switch2to1x11_gold.svg")));
+        box.size = goldPanel->box.size;
+        addChild(goldPanel);
+        blackPanel = new SvgPanel();
+        blackPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switch2to1x11_black.svg")));
+        blackPanel->visible = false;
+        addChild(blackPanel);
+        whitePanel = new SvgPanel();
+        whitePanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/switch2to1x11_white.svg")));
+        whitePanel->visible = false;
+        addChild(whitePanel);
+
+        addChild(createWidget<ScrewSilver>(Vec(15, 0)));
+	    addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 0)));
+	    addChild(createWidget<ScrewSilver>(Vec(15, 365)));
+	    addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 
         const float x1 = 3.0;
@@ -167,21 +192,30 @@ struct switch2to1x11Widget : ModuleWidget {
         const float x3 = 5.+41.;
         const float x4 = 5.+62.;
 
-        float yPos = 22.;
+        float yPos = 22;
 
         for(int i = 0; i < 11; i++)
         {
-            yPos += 27.;
-            addInput(Port::create<sts_Port>(Vec(x1, yPos), Port::INPUT, module, switch2to1x11::CV1_INPUT + i));
-            addInput(Port::create<sts_Port>(Vec(x2, yPos), Port::INPUT, module, switch2to1x11::INA1_INPUT + i));
-            addInput(Port::create<sts_Port>(Vec(x3, yPos), Port::INPUT, module, switch2to1x11::INB1_INPUT + i));
-            addOutput(Port::create<sts_Port>(Vec(x4, yPos), Port::OUTPUT, module, switch2to1x11::OUT1_OUTPUT + i));
+            yPos += 27;
+            addInput(createInput<sts_Port>(Vec(x1, yPos), module, Switch2to1x11::CV_INPUT + i));
+            addInput(createInput<sts_Port>(Vec(x2, yPos), module, Switch2to1x11::INA_INPUT + i));
+            addInput(createInput<sts_Port>(Vec(x3, yPos), module, Switch2to1x11::INB_INPUT + i));
+            addOutput(createOutput<sts_Port>(Vec(x4, yPos), module, Switch2to1x11::OUT_OUTPUT + i));
         }
+        //yPos += 48;
 
-        yPos += 48.;
-       
     }
 
+    void step() override
+    {
+        if (module)
+        {
+            goldPanel->visible = ((((Switch2to1x11 *)module)->panelStyle) == 0);
+            blackPanel->visible = ((((Switch2to1x11 *)module)->panelStyle) == 1);
+            whitePanel->visible = ((((Switch2to1x11 *)module)->panelStyle) == 2);
+        }
+        Widget::step();
+    }
 };
 
-Model *modelswitch2to1x11 = Model::create<switch2to1x11,switch2to1x11Widget>("STS", "switch2to1x11", "2 -> 1 x 11 Switch - A/B Switch", SWITCH_TAG, MIXER_TAG);
+Model *modelSwitch2to1x11 = createModel<Switch2to1x11,Switch2to1x11Widget>("Switch2to1x11");
