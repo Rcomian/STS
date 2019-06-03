@@ -164,7 +164,7 @@ struct Mixer8 : Module {
 struct Mixer8Widget : ModuleWidget {
 	Mixer8Widget(Mixer8 *module) {
 		setModule(module);
-		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/Mixer8.svg")));
+		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/mixer8.svg")));
 
 		addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
