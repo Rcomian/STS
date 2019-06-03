@@ -30,9 +30,10 @@ struct PolySEQ16 : Module {
 		NUM_PARAMS
 	};
 	enum InputIds {
-		CLOCK_INPUT,
+		INT_CLOCK_CV,
 		EXT_CLOCK_INPUT,
 		RESET_INPUT,
+		RUN_ON_OFF,
 		STEPS_INPUT,
 		OCT4_CV_INPUT,
 		ENUMS(ROW_ON_CV, 4),
@@ -477,9 +478,9 @@ struct PolySEQ16 : Module {
 		int rowSetting;
 		int channels = 4;
 		// Run
-		if (runningTrigger.process(params[RUN_PARAM].getValue())) {
+		if (runningTrigger.process(params[RUN_PARAM].getValue() || inputs[RUN_ON_OFF].getVoltage()))     //  RUN_ON_OFF
+		{     
 			running = !running;
-			
 		}
 		
 		bool gateIn = false;
@@ -496,7 +497,7 @@ struct PolySEQ16 : Module {
 			}
 			else {
 				// Internal clock
-				clockTime = std::pow(2.f, params[CLOCK_PARAM].getValue() + inputs[CLOCK_INPUT].getVoltage());
+				clockTime = std::pow(2.f, params[CLOCK_PARAM].getValue() + inputs[INT_CLOCK_CV].getVoltage());
 				phase += clockTime * args.sampleTime;
 				if (phase >= 1.f) 
 				{
@@ -690,25 +691,26 @@ struct PolySEQ16Widget : ModuleWidget {
 		static const float portX[16] = {20, 57, 94, 132, 169, 207, 244, 282, 319, 356, 394, 431, 469, 506, 544, 582};
 
 		addParam(createParam<sts_Davies_37_Grey>(Vec(portX[0]-1, 30), module, PolySEQ16::CLOCK_PARAM));
-		addParam(createParam<LEDButton>(Vec(59.5, 30), module, PolySEQ16::RUN_PARAM));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(63.9f, 34), module, PolySEQ16::RUNNING_LIGHT));
-		addParam(createParam<LEDButton>(Vec(96, 30), module, PolySEQ16::RESET_PARAM));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(100.4f, 34), module, PolySEQ16::RESET_LIGHT));
-		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[3]-1, 30), module, PolySEQ16::STEPS_PARAM));
-		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[4]-1, 30), module, PolySEQ16::OCT4_PARAM));
+		addParam(createParam<LEDButton>(Vec(portX[3]+2.5, 33), module, PolySEQ16::RUN_PARAM));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[3]+6.9, 37), module, PolySEQ16::RUNNING_LIGHT));
+		addParam(createParam<LEDButton>(Vec(96, 33), module, PolySEQ16::RESET_PARAM));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(100.4f, 37), module, PolySEQ16::RESET_LIGHT));
+		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[4]-1, 30), module, PolySEQ16::STEPS_PARAM));
+		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[11]-1, 30), module, PolySEQ16::OCT4_PARAM));
 
 
-		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[5]+7, 34), module, PolySEQ16::GATES_LIGHT));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[6]+7, 34), module, PolySEQ16::ROW_LIGHTS));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[7]+7, 34), module, PolySEQ16::ROW_LIGHTS + 1));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[8]+7, 34), module, PolySEQ16::ROW_LIGHTS + 2));
-		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[9]+7, 34), module, PolySEQ16::ROW_LIGHTS + 3));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[5]+7, 37), module, PolySEQ16::GATES_LIGHT));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[6]+7, 37), module, PolySEQ16::ROW_LIGHTS));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[7]+7, 37), module, PolySEQ16::ROW_LIGHTS + 1));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[8]+7, 37), module, PolySEQ16::ROW_LIGHTS + 2));
+		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[9]+7, 37), module, PolySEQ16::ROW_LIGHTS + 3));
 				
-		addInput(createInput<sts_Port>(Vec(portX[0]+2, 64), module, PolySEQ16::CLOCK_INPUT));
+		addInput(createInput<sts_Port>(Vec(portX[0]+2, 64), module, PolySEQ16::INT_CLOCK_CV));
 		addInput(createInput<sts_Port>(Vec(portX[1]+2, 64), module, PolySEQ16::EXT_CLOCK_INPUT));
 		addInput(createInput<sts_Port>(Vec(portX[2]+2, 64), module, PolySEQ16::RESET_INPUT));
-		addInput(createInput<sts_Port>(Vec(portX[3]+2, 64), module, PolySEQ16::STEPS_INPUT));
-		addInput(createInput<sts_Port>(Vec(portX[4]+2, 64), module, PolySEQ16::OCT4_CV_INPUT));
+		addInput(createInput<sts_Port>(Vec(portX[3]+3, 64), module, PolySEQ16::RUN_ON_OFF));
+		addInput(createInput<sts_Port>(Vec(portX[4]+2, 64), module, PolySEQ16::STEPS_INPUT));
+		addInput(createInput<sts_Port>(Vec(portX[11]+2, 64), module, PolySEQ16::OCT4_CV_INPUT));
 
 		addOutput(createOutput<sts_Port>(Vec(portX[5]+2, 64), module, PolySEQ16::GATES_OUTPUT));
 		addOutput(createOutput<sts_Port>(Vec(portX[6]+2, 64), module, PolySEQ16::ROW1_OUTPUT));
