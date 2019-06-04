@@ -70,7 +70,7 @@ struct Mixer8 : Module {
 				if (!inputs[CH_INPUT + i].isConnected())
 					continue;
 
-				float in[16] = {};
+				//float in[16] = {};
 				//int channels = inputs[CH_INPUT + i].getChannels();
 				
 				//MAX_POLY_CHANNELS = std::max(MAX_POLY_CHANNELS, channels);
@@ -127,7 +127,7 @@ struct Mixer8 : Module {
 				// Add to mix
 				for (int c = 0; c < channels; c++) 
 				{
-					//////  FIX ///mix[c] = in1(c) + in2(c) + in3(c) ;
+					mix[c] = in1[c] + in2[c] + in3[c] ;
 				}
 			}
 		}
