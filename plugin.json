@@ -52,12 +52,6 @@
 			"name": "VU_Poly",
 			"description": "VU Meter Poly",
 			"tags": ["Visual", "Polyphonic"]
-		},
-		{
-			"slug": "Mixer8",
-			"name": "Mixer8",
-			"description": "Mixer",
-			"tags": ["Mixer"]
 		}
 	]
 }

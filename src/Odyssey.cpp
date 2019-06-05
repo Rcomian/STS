@@ -1412,94 +1412,7 @@ struct Odyssey : Module
 			lights[RELEASE_LIGHT_2].value = (!adsr2[i].gated && !adsr2[i].resting) ? 1.0f : 0.0f;
 		}
 
-		////////////////////////////////////////////////////////
-		//////////////////////     LFO     /////////////////////
-		////////////////////////////////////////////////////////
-		float freqParam = params[FREQ_PARAM_LFO].getValue();
-		float waveParam = params[WAVE_ATTEN_LFO].getValue();
-		float fmParam = params[LFO_FM_PARAM].getValue();
-
-		//int channels = inputs[FM_INPUT].getChannels();   v/oct in for channels
-
-		for (int c = 0; c < channels; c += 4) {
-			auto *oscillator = &oscillators[c / 4];
-			float_4 pitch = freqParam;
-			// FM, polyphonic
-			pitch += float_4::load(inputs[IN_CV_LFO].getVoltages(c)) * fmParam;
-			oscillator->setPitch(pitch);
-
-			// Wave
-			float_4 wave = waveParam;
-			inputs[WAVE_CV_LFO].getVoltage();
-			if (inputs[WAVE_CV_LFO].getChannels() == 1)
-				wave += inputs[WAVE_CV_LFO].getVoltage() / 10.f * 3.f;
-			else
-				wave += float_4::load(inputs[WAVE_CV_LFO].getVoltages(c)) / 10.f * 3.f;
-			wave = clamp(wave, 0.f, 3.f);
-
-			// Settings
-			//oscillator->invert = (params[INVERT_PARAM].getValue() == 0.f);
-			//oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
-			oscillator->step(args.sampleTime);
-			//oscillator->setReset(inputs[RESET_INPUT].getVoltage());
-
-			// Outputs
-			if (inputs[WAVE_CV_LFO].isConnected()) 
-			{
-				outputs[OUT_OUTPUT_1].setChannels(channels);
-				float_4 v = 0.f;
-				v += oscillator->sin() * simd::fmax(0.f, 1.f - simd::fabs(wave - 0.f));
-				v += oscillator->tri() * simd::fmax(0.f, 1.f - simd::fabs(wave - 1.f));
-				v += oscillator->saw() * simd::fmax(0.f, 1.f - simd::fabs(wave - 2.f));
-				v += oscillator->sqr() * simd::fmax(0.f, 1.f - simd::fabs(wave - 3.f));
-				v *= 5.f;
-				v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-				v.store(LFO_OUTPUT);
-			}
-			else
-			{
-				if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0) {
-					outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->sin();
-					v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1) {
-					outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->tri();
-					v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2) {
-					outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->saw();
-					v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3) {
-					outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->sqr();
-					v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-			}
-			
-		}
 		
-		// Light
-		if (lightDividerLFO.process()) {
-			if (channels == 1) {
-				float lightValue = oscillators[0].light().s[0];
-				lights[PHASE_LIGHT + 0].setSmoothBrightness(-lightValue, args.sampleTime * lightDivider.getDivision());
-				lights[PHASE_LIGHT + 1].setSmoothBrightness(lightValue, args.sampleTime * lightDivider.getDivision());
-				lights[PHASE_LIGHT + 2].setBrightness(0.f);
-			}
-			else {
-				lights[PHASE_LIGHT + 0].setBrightness(0.f);
-				lights[PHASE_LIGHT + 1].setBrightness(0.f);
-				lights[PHASE_LIGHT + 2].setBrightness(1.f);
-			}
-		}
 		
 		// Octave Switch
 		OUT_OUTPUT_OCTAVE = params[OCTAVE_PARAM].getValue();
@@ -1624,6 +1537,98 @@ struct Odyssey : Module
 		
 		
 		//PORTA_OUT = inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltage();
+
+
+		////////////////////////////////////////////////////////
+		//////////////////////     LFO     /////////////////////
+		////////////////////////////////////////////////////////
+		float freqParam = params[FREQ_PARAM_LFO].getValue();
+		float waveParam = params[WAVE_ATTEN_LFO].getValue();
+		float fmParam = params[LFO_FM_PARAM].getValue();
+
+		//int channels = inputs[FM_INPUT].getChannels();   v/oct in for channels
+
+		for (int c = 0; c < channels; c += 4) {
+			auto *oscillator = &oscillators[c / 4];
+			float_4 pitch = freqParam;
+			// FM, polyphonic
+			pitch += float_4::load(inputs[IN_CV_LFO].getVoltages(c)) * fmParam;
+			oscillator->setPitch(pitch);
+
+			// Wave
+			float_4 wave = waveParam;
+			inputs[WAVE_CV_LFO].getVoltage();
+			if (inputs[WAVE_CV_LFO].getChannels() == 1)
+				wave += inputs[WAVE_CV_LFO].getVoltage() / 10.f * 3.f;
+			else
+				wave += float_4::load(inputs[WAVE_CV_LFO].getVoltages(c)) / 10.f * 3.f;
+			wave = clamp(wave, 0.f, 3.f);
+
+			// Settings
+			//oscillator->invert = (params[INVERT_PARAM].getValue() == 0.f);
+			//oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
+			oscillator->step(args.sampleTime);
+			//oscillator->setReset(inputs[RESET_INPUT].getVoltage());
+
+			// Outputs
+			if (inputs[WAVE_CV_LFO].isConnected()) 
+			{
+				//outputs[OUT_OUTPUT_1].setChannels(channels);
+				float_4 v = 0.f;
+				v += oscillator->sin() * simd::fmax(0.f, 1.f - simd::fabs(wave - 0.f));
+				v += oscillator->tri() * simd::fmax(0.f, 1.f - simd::fabs(wave - 1.f));
+				v += oscillator->saw() * simd::fmax(0.f, 1.f - simd::fabs(wave - 2.f));
+				v += oscillator->sqr() * simd::fmax(0.f, 1.f - simd::fabs(wave - 3.f));
+				v *= 5.f;
+				//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+				v.store(LFO_OUTPUT);
+			}
+			else
+			{
+				if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0) {
+					//outputs[OUT_OUTPUT_1].setChannels(channels);
+					float_4 v = 5.f * oscillator->sin();
+					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+					v.store(LFO_OUTPUT);
+				}
+				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1) {
+					//outputs[OUT_OUTPUT_1].setChannels(channels);
+					float_4 v = 5.f * oscillator->tri();
+					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+					v.store(LFO_OUTPUT);
+				}
+				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2) {
+					//outputs[OUT_OUTPUT_1].setChannels(channels);
+					float_4 v = 5.f * oscillator->saw();
+					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+					v.store(LFO_OUTPUT);
+				}
+				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3) {
+					//outputs[OUT_OUTPUT_1].setChannels(channels);
+					float_4 v = 5.f * oscillator->sqr();
+					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+					v.store(LFO_OUTPUT);
+				}
+			}
+			
+		}
+		
+		// Light
+		if (lightDividerLFO.process()) {
+			if (channels == 1) {
+				float lightValue = oscillators[0].light().s[0];
+				lights[PHASE_LIGHT + 0].setSmoothBrightness(-lightValue, args.sampleTime * lightDivider.getDivision());
+				lights[PHASE_LIGHT + 1].setSmoothBrightness(lightValue, args.sampleTime * lightDivider.getDivision());
+				lights[PHASE_LIGHT + 2].setBrightness(0.f);
+			}
+			else {
+				lights[PHASE_LIGHT + 0].setBrightness(0.f);
+				lights[PHASE_LIGHT + 1].setBrightness(0.f);
+				lights[PHASE_LIGHT + 2].setBrightness(1.f);
+			}
+		}
+
+
 
 		////////////////////////////////////////////////////////
 		//////////////    FM IN OSC1         ///////////////////
@@ -2180,12 +2185,11 @@ struct Odyssey : Module
 		{
 			for (int i = 0; i < channels; ++i)
 			{
-				IN_HPF[i] = inputs[IN_CV_2].getPolyVoltage(i); // Ext filter in to HP filter
+				IN_HPF[i] = inputs[INPUT_EXT_VCF].getPolyVoltage(i) / 5.0f; // Ext filter in to HP filter
 				//inputs[INPUT_EXT_VCF].getVoltages(IN_HPF);
 			}
 		}
-		//outputs[OUT_OUTPUT_1].setChannels(channels);
-		//outputs[OUT_OUTPUT_1].writeVoltages(IN_HPF);
+		
 		
 		//////////////////////////////////////////////////
 		//////////////////   HPF     /////////////////////
@@ -2210,12 +2214,14 @@ struct Odyssey : Module
 			}
 			else
 			{
-				inputs[INPUT_EXT_VCF].getVoltage(i);
+				HPFin[i] =inputs[INPUT_EXT_VCF].getVoltage(i);
+				hpfFilter[i].calcOutput(HPFin[i]);
 			}
 			
 			OUT_HP[i] = hpfFilter[i].hp * 5.0f;
 		}
-		
+		//outputs[OUT_OUTPUT_1].setChannels(channels);
+		//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
 		////////////////////////////////////////////////////////
 		///////////////  ADSR TO VCA slider  ///////////////////
 		////////////////////////////////////////////////////////

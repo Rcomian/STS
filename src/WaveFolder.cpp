@@ -114,7 +114,7 @@ struct WaveFolder : Module
 
 	inline float getGainedOffsetedInputValue()
 	{
-		return (inputs[INPUT_INPUT].getVoltage() * meta::clamp(params[INPUT_GAIN_PARAM].getValue() + inputs[INPUT_GAIN_INPUT].getVoltage() / g_audioPeakVoltage, 0.f, 1.f)) + (params[DC_OFFSET_PARAM].getValue() + inputs[DC_OFFSET_INPUT].getVoltage()) / 2.f;
+		return (inputs[INPUT_INPUT].getVoltageSum() * meta::clamp(params[INPUT_GAIN_PARAM].getValue() + inputs[INPUT_GAIN_INPUT].getVoltage() / g_audioPeakVoltage, 0.f, 1.f)) + (params[DC_OFFSET_PARAM].getValue() + inputs[DC_OFFSET_INPUT].getVoltage()) / 2.f;
 	}
 
 	inline float waveFolder(float in)

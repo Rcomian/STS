@@ -136,10 +136,10 @@ struct RingModulator : Module
 		//const float vhin = getLeveledPolarizedInputValue(INPUT_INPUT, INPUT_POLARITY_PARAM, INPUT_LEVEL_PARAM) * 0.5f;
 		//const float vc = getLeveledPolarizedInputValue(CARRIER_INPUT, CARRIER_POLARITY_PARAM, CARRIER_LEVEL_PARAM) +
 		//				 params[CARRIER_OFFSET_PARAM].getValue() + params[CARRIER_OFFSET_INPUT].getValue();
-		const float vhin = getLeveledPolarizedInputValue(inputs[INPUT_INPUT].getVoltage(), 
+		const float vhin = getLeveledPolarizedInputValue(inputs[INPUT_INPUT].getVoltageSum(), 
 														params[INPUT_POLARITY_PARAM].getValue(), 
 														params[INPUT_LEVEL_PARAM].getValue()) * 0.5f;
-		const float vc =   getLeveledPolarizedInputValue(inputs[CARRIER_INPUT].getVoltage(), 
+		const float vc =   getLeveledPolarizedInputValue(inputs[CARRIER_INPUT].getVoltageSum(), 
 														params[CARRIER_POLARITY_PARAM].getValue(), 
 														params[CARRIER_LEVEL_PARAM].getValue()) +
 						 								params[CARRIER_OFFSET_PARAM].getValue() + 

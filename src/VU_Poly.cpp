@@ -72,10 +72,9 @@ struct VU_Poly : Module
 		if (panelStyleJ)
 			panelStyle = json_integer_value(panelStyleJ);
 	}
-
 	void process(const ProcessArgs &args) override
 	{
-		//float in[MAX_POLY_CHANNELS] = {};
+		
 		//inputs[POLY_INPUT].getVoltages(in);
 		//int channels = inputs[POLY_INPUT].getChannels();
 		if (vuDivider.process())
@@ -83,11 +82,11 @@ struct VU_Poly : Module
 			int channels = inputs[POLY_INPUT].getChannels();
 			for (int c = 0; c < channels; c++)
 			{
-				//in = inputs[POLY_INPUT].getPolyChannels(c);
-				bool active = (c < channels);
+				
+				bool active = (c < inputs[POLY_INPUT].getChannels());
 
-				//if (in[c] > 0)
-				//{
+				if (inputs[POLY_INPUT].getPolyVoltage(c))
+				{
 				
 					vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), inputs[POLY_INPUT].getPolyVoltage(c) / 10.f);
 
@@ -97,8 +96,8 @@ struct VU_Poly : Module
 					{
 						lights[VU_LIGHTS + i + (VU_LEVELS * c)].setBrightness(vuMeter[c].getBrightness(-3.f * i, -3.f * (i - 1)));
 					}
-				//}
-				
+				}
+			
 				
 			}
 		}
