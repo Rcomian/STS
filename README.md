@@ -1,20 +1,20 @@
-Compile at your own risk, API is still in flux, even though it was supposed to be stable ;(  Wait until this line goes away to be safe.
 
 
-Here is the V1 list so far.  Documentation to follow.....
+Compile at your own risk, API is still in flux, even though it was supposed to be stable ;( Wait until this line goes away to be safe.
 
-Oddy :  Full polyphonic synth (formally Oddyssey, kept slug nale for compatibility. Has grown to the point that it does not really resemble an Oddysy any more.
+Here is the V1 list so far. Documentation to follow.....
 
-Illiad:  V1 Compatible, no changes.
+Oddy : Full polyphonic synth (formally Oddyssey, kept slug nale for compatibility. Has grown to the point that it does not really resemble an Oddysy any more.
 
-VU_Poly:  A polyphonic LED VU Meter.
+Illiad: V1 Compatible, no changes.
 
-Poly Sequencer 16:  4 channel polyphonic 16 step sequencer with 2 gates, 1 trigger per voice per step. CV controllable Channel on/off
+VU_Poly: A polyphonic LED VU Meter.
 
-Ring Modulator:  Orphaned module from JE ported to V1.  Will be POLY at a later date.
+Poly Sequencer 16: 4 channel polyphonic 16 step sequencer with 2 gates, 1 trigger per voice per step. CV controllable Channel on/off
 
-Wave Folder:  Orphaned module from JE ported to V1.  Will be POLY at a later date.
+Ring Modulator: Orphaned module from JE ported to V1. Will be POLY at a later date.
 
+Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
 
 VCV Rack modules for V6.2.
 
@@ -57,6 +57,5 @@ The Pitch Bend knob, 0 to 2 Volts
 The 2 -> 1 x 11 Switch in a VC controled version of Southpole's Manual Switch, 'Abr'. 11 switches so 2 of them covers the 22 switches on Illiad. Bottom position A, Top switch position a B.
 
 Hope you have as much fun using these as I had writing them.
-
 
 Suggestions are always welcome.
