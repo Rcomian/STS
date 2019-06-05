@@ -1,12 +1,22 @@
-FIRST V1 commit, compile at your own risk, API is still in flux, even though it was supposed to be stable ;(  wait til this line goes away to be safe...
 
 
-V1 Documentation to follow.....
+Compile at your own risk, API is still in flux, even though it was supposed to be stable ;( Wait until this line goes away to be safe.
 
+Here is the V1 list so far. Documentation to follow.....
 
-STS
+Oddy : Full polyphonic synth (formally Oddyssey, kept slug nale for compatibility. Has grown to the point that it does not really resemble an Oddysy any more.
 
-New VCV Rack modules for V6.2.
+Illiad: V1 Compatible, no changes.
+
+VU_Poly: A polyphonic LED VU Meter.
+
+Poly Sequencer 16: 4 channel polyphonic 16 step sequencer with 2 gates, 1 trigger per voice per step. CV controllable Channel on/off
+
+Ring Modulator: Orphaned module from JE ported to V1. Will be POLY at a later date.
+
+Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
+
+VCV Rack modules for V6.2.
 
 Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
 
@@ -47,15 +57,5 @@ The Pitch Bend knob, 0 to 2 Volts
 The 2 -> 1 x 11 Switch in a VC controled version of Southpole's Manual Switch, 'Abr'. 11 switches so 2 of them covers the 22 switches on Illiad. Bottom position A, Top switch position a B.
 
 Hope you have as much fun using these as I had writing them.
-
-The To Do list:
-
-1) Not true to the odyssey, but an X/y 'joystick' controller is in teh works.
-
-2) A replacement for the Octave switch. The current one is pretty useless.
-
-3) Range controls for the sliders, to complement the Offset knobs. Sometimes 10V is too much, and I found 1V not enough, depending on the stiuation.
-
-4) Smaller output jacks on the Illiad, like the ones on teh Switch, to give more room for labels.
 
 Suggestions are always welcome.
