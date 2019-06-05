@@ -4,16 +4,19 @@ Compile at your own risk, API is still in flux, even though it was supposed to b
 Here is the V1 list so far.  Documentation to follow.....
 
 Oddy :  Full polyphonic synth (formally Oddyssey, kept slug nale for compatibility. Has grown to the point that it does not really resemble an Oddysy any more.
+
 Illiad:  V1 Compatible, no changes.
+
 VU_Poly:  A polyphonic LED VU Meter.
+
 Poly Sequencer 16:  4 channel polyphonic 16 step sequencer with 2 gates, 1 trigger per voice per step. CV controllable Channel on/off
+
 Ring Modulator:  Orphaned module from JE ported to V1.  Will be POLY at a later date.
+
 Wave Folder:  Orphaned module from JE ported to V1.  Will be POLY at a later date.
 
 
-STS
-
-New VCV Rack modules for V6.2.
+VCV Rack modules for V6.2.
 
 Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
 
