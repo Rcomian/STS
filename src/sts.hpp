@@ -17,7 +17,7 @@ extern Model *modelVU_Poly;
 
 
 //extern Model *modelMidiFile;
-extern Model *modelMixer8;
+//extern Model *modelMixer8;
 //extern Model *modelSEQEXP;
 //extern Model *modelOdy;
 //extern Model *modelOdyssey;

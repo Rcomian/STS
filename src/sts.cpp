@@ -18,7 +18,7 @@ void init(rack::Plugin *p)
 	
 
 	//p->addModel(modelMidiFile);
-	p->addModel(modelMixer8);
+	//p->addModel(modelMixer8);
 	//p->addModel(modelOdy);
 	//p->addModel(modelOdyssey);
 	//p->addModel(modelSEQEXP);

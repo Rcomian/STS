@@ -495,18 +495,7 @@ struct PolySEQ16 : Module {
 				}
 				gateIn = clockTrigger.isHigh();
 			}
-			else {
-				// Internal clock
-				clockTime = std::pow(2.f, params[CLOCK_PARAM].getValue() + inputs[INT_CLOCK_CV].getVoltage());
-				phase += clockTime * args.sampleTime;
-				if (phase >= 1.f) 
-				{
-					setIndex(index + 1);
-					gatePulse.trigger(1e-3);
-				}
-				gateIn = (phase < 0.5f);
-				
-			}
+			
 		}
 
 		// Reset
@@ -690,7 +679,7 @@ struct PolySEQ16Widget : ModuleWidget {
 		//static const float portX[16] = {20, 58, 96, 135, 173, 212, 250, 289, 327, 365, 404, 442, 481, 519, 558, 597};
 		static const float portX[16] = {20, 57, 94, 132, 169, 207, 244, 282, 319, 356, 394, 431, 469, 506, 544, 582};
 
-		addParam(createParam<sts_Davies_37_Grey>(Vec(portX[0]-1, 30), module, PolySEQ16::CLOCK_PARAM));
+		//addParam(createParam<sts_Davies_37_Grey>(Vec(portX[0]-1, 30), module, PolySEQ16::CLOCK_PARAM));
 		addParam(createParam<LEDButton>(Vec(portX[3]+2.5, 33), module, PolySEQ16::RUN_PARAM));
 		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[3]+6.9, 37), module, PolySEQ16::RUNNING_LIGHT));
 		addParam(createParam<LEDButton>(Vec(96, 33), module, PolySEQ16::RESET_PARAM));
@@ -705,8 +694,8 @@ struct PolySEQ16Widget : ModuleWidget {
 		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[8]+7, 37), module, PolySEQ16::ROW_LIGHTS + 2));
 		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[9]+7, 37), module, PolySEQ16::ROW_LIGHTS + 3));
 				
-		addInput(createInput<sts_Port>(Vec(portX[0]+2, 64), module, PolySEQ16::INT_CLOCK_CV));
-		addInput(createInput<sts_Port>(Vec(portX[1]+2, 64), module, PolySEQ16::EXT_CLOCK_INPUT));
+		//addInput(createInput<sts_Port>(Vec(portX[0]+2, 64), module, PolySEQ16::INT_CLOCK_CV));
+		addInput(createInput<sts_Port>(Vec(portX[0]+2, 64), module, PolySEQ16::EXT_CLOCK_INPUT));
 		addInput(createInput<sts_Port>(Vec(portX[2]+2, 64), module, PolySEQ16::RESET_INPUT));
 		addInput(createInput<sts_Port>(Vec(portX[3]+3, 64), module, PolySEQ16::RUN_ON_OFF));
 		addInput(createInput<sts_Port>(Vec(portX[4]+2, 64), module, PolySEQ16::STEPS_INPUT));
