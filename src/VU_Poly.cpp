@@ -81,16 +81,17 @@ struct VU_Poly : Module
 		{
 			int channels = inputs[POLY_INPUT].getChannels();
 			for (int c = 0; c < channels; c++)
+			
 			{
-				
+				vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), inputs[POLY_INPUT].getPolyVoltage(c) / 10.f);
 				bool active = (c < inputs[POLY_INPUT].getChannels());
 
 				if (inputs[POLY_INPUT].getPolyVoltage(c))
 				{
 				
-					vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), inputs[POLY_INPUT].getPolyVoltage(c) / 10.f);
+					//vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), inputs[POLY_INPUT].getPolyVoltage(c) / 10.f);
 
-					lights[CHANNEL_LIGHTS + c].setBrightness(active);
+					//lights[CHANNEL_LIGHTS + c].setBrightness(active);
 					// Set channel lights infrequently
 					for (int i = 0; i < VU_LEVELS; i++)
 					{
@@ -183,7 +184,7 @@ struct VU_PolyWidget : ModuleWidget
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 365)));
 
 		addInput(createInputCentered<sts_Port>(Vec(60, 320), module, VU_Poly::POLY_INPUT));
-
+		/*
 		for (int j = 0; j < 8; ++j)
 		{
 			addChild(createLight<MediumLight<RedLight>>(Vec(10 + j * 13, 170), module, VU_Poly::CHANNEL_LIGHTS + j));
@@ -192,7 +193,7 @@ struct VU_PolyWidget : ModuleWidget
 		{
 			addChild(createLight<MediumLight<RedLight>>(Vec(10 + ((j - 8) * 13), 295), module, VU_Poly::CHANNEL_LIGHTS + j));
 		}
-
+		*/
 		for (int channel = 0; channel < 8; channel++)
 		{
 			addChild(createLight<MediumLight<RedLight>>(Vec(10 + channel * 13, 70), module, VU_Poly::VU_LIGHTS + 0 + 10 * channel));
