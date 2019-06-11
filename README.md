@@ -1,6 +1,5 @@
 
-
-Compile at your own risk, API is still in flux, even though it was supposed to be stable ;( Wait until this line goes away to be safe.
+Works when compiled with latest (june 11th AM) pull of VCV rack.  Cann not guarentee with anything previous to that.
 
 Here is the V1 list so far. Documentation to follow.....
 
@@ -19,8 +18,6 @@ Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
 VCV Rack modules for V6.2.
 
 Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
-
-The switch is a modified version of SouthPoles Manual Switch, Abr. It adds 3 more switches, so 2 will cover the 22 switch outputs on the Illiad, and makes them CV controllable.
 
 The Illiad has 3 'Homage to the Odyssey' skins if you right click
 
