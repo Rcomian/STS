@@ -807,7 +807,6 @@ struct Odyssey : Module
 		DRIVE_PARAM_VCF,
 		// HPF
 		HPF_FILTER_FREQ,
-		HPF_Q_PARAM,
 		HPF_FMOD_PARAM,
 		// OSC1
 		FREQ_PARAM_OSC1,
@@ -944,15 +943,6 @@ struct Odyssey : Module
 	float OUT_OUTPUT_AR_ADSR[MAX_POLY_CHANNELS];
 	// VCA
 
-	//float EXP1_INPUT_VCA;
-	//float LIN1_INPUT_VCA;
-	//float IN1_INPUT_VCA;
-	//float EXP2_INPUT_VCA;
-	//float LIN2_INPUT_VCA;
-	//float IN2_INPUT_VCA;
-	//float	OUT_OUTPUT_VCA1;
-	//float	OUT_OUTPUT_VCA2;
-
 	// VCF
 	float FREQ_INPUT_VCF[MAX_POLY_CHANNELS];
 	float RES_INPUT_VCF;
@@ -975,6 +965,7 @@ struct Odyssey : Module
 	float Q_INPUT_HPF;
 	float OUT_HP[MAX_POLY_CHANNELS];
 	float CUTOFF_INPUT_HPF;
+	float HPF_Q_PARAM;
 
 	//// Pitch,Ports,Octave
 	float PORTA_OUT[MAX_POLY_CHANNELS];
@@ -1078,7 +1069,7 @@ struct Odyssey : Module
 	PinkFilter pinkFilter;
 	LadderFilter filter[MAX_POLY_CHANNELS];
 	VCA vca1[MAX_POLY_CHANNELS];
-	VCA vca2[MAX_POLY_CHANNELS];
+	//VCA vca2[MAX_POLY_CHANNELS];
 	//VCA_SIMD_POLY vca1A[MAX_POLY_CHANNELS];
 	//VCA_SIMD_POLY vca2A[MAX_POLY_CHANNELS];
 
@@ -1110,7 +1101,7 @@ struct Odyssey : Module
 
 		configParam(SWITCH_PARAM_NOISE_SEL, 0.f, 1.f, 1.f, "Noise Select");
 		configParam(PARAM_PORTA, 0.0f, 1.f, 0.0f, "Portamento", "%", 0, 100); //.4
-		configParam(PARAM_PORTA_SHAPE, 0.f, 1.f, 0.5f, "Portamento Shape");
+		//configParam(PARAM_PORTA_SHAPE, 0.f, 1.f, 0.5f, "Portamento Shape");
 		configParam(OCTAVE_PARAM, -4.f, 2.f, -1.f, "Octaves");		//, " ", 0.0, 1.0, 0.0);
 		configParam(PITCHBEND_PARAM, -1.f, 1.f, 0.f, "Pitch Bend"); //, " ", 0.0, 1.0, 0.0);
 		configParam(ATTEN_PB, 0.f, 1.f, 0.0f, "Pitch Bend Attenverter "); //, " ", 0.0, 1.0, 0.0);
@@ -1145,11 +1136,11 @@ struct Odyssey : Module
 		configParam(DRIVE_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Drive ");
 		configParam(FREQ_CV_PARAM_VCF, -1.f, 1.f, 0.f, "VCF Filter Mix Offset ");
 
-		configParam(HPF_Q_PARAM, 0.f, 1.f, 0.f, "HPF Resonance ");
+		//configParam(HPF_Q_PARAM, 0.f, 1.f, 0.f, "HPF Resonance ");
 		configParam(HPF_FILTER_FREQ, 0.0f, 1.0f, 0.0f, "HPF Cutoff Frequency "); //, " ",0.0, 1.0, 0.0);
 		configParam(HPF_FMOD_PARAM, -1.f, 1.f, 0.f, "HPF Cutoff CV Offset "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(LEVEL1_PARAM_VCA, 0.0f, 1.0f, 0.0f, "VCA Level NO ADSR", "%", 0, 100);
+		//configParam(LEVEL1_PARAM_VCA, 0.0f, 1.0f, 0.0f, "VCA Level NO ADSR", "%", 0, 100);
 
 		configParam(ATTACK_PARAM_2, 0.f, 1.f, 0.f, "Attack ADSR 2");   //, " ",0.0, 1.0, 0.0);
 		configParam(DECAY_PARAM_2, 0.f, 1.f, 0.f, "Decay ADSR 2");	 //, " ",0.0, 1.0, 0.0);
@@ -1178,9 +1169,6 @@ struct Odyssey : Module
 		configParam(SLIDER_PARAM_TO_AUDIO_LVL + 2, 0.0, 1.0, 0.0, "VCO2 Mix Level");		 //, " ",0.0, 1.0, 0.0);
 		configParam(SLIDER_PARAM_TO_AUDIO_LVL + 3, 0.0, 1.0, 0.0, "VCO3 Mix Level");		 //, " ",0.0, 1.0, 0.0);
 
-		//configParam(PARAM_SAVE_PRESET, 0.0, 1.0, 0.0, "Save Preset"); //, " ",0.0, 1.0, 0.0);
-		//configParam(PARAM_LOAD_PRESET, 0.0, 1.0, 0.0, "Load Preset"); //, " ",0.0, 1.0, 0.0);
-
 		configParam(SLIDER_PARAM_TO_FILTER_LVL + 0, 0.0, 1.0, 0.0, "Keyboard CV level to VCF"); //, " ",0.0, 1.0, 0.0);
 		configParam(SLIDER_PARAM_TO_FILTER_LVL + 1, 0.0, 1.0, 0.0, "S & H CV level to VCF");	//, " ",0.0, 1.0, 0.0);
 		configParam(SLIDER_PARAM_TO_FILTER_LVL + 2, 0.0, 1.0, 0.0, "ADSR CV level to VCF");		//, " ",0.0, 1.0, 0.0);
@@ -1192,34 +1180,34 @@ struct Odyssey : Module
 		configParam(RELEASE_PARAM_1, 0.0, 1.0, 0.0, "Release ADSR 1"); //, " ",0.0, 1.0, 0.0);
 
 		////   OSC2
-		//configParam(SYNC_PARAM_OSC2, 0.0f, 1.0f, 1.0f, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		//configParam(SYNC_PARAM_OSC2, 0.0f, 1.0f, 1.0f, " "); //, " ",0.0, 1.0, 0.0);
 
 		/////////////////// Switches ////////////////////
-		configParam(SWITCH_PARAM_FM_OSC1 + 0, 0.0, 1.0, 1.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC1 + 0, 0.0, 1.0, 1.0, "Portamento Lag");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC1 + 1, 0.0, 1.0, 0.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC1 + 0, 0.0, 1.0, 1.0, "Portamento Lag");		 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC1 + 0, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC1 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC1 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC1 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC1 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC1 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_FM_OSC2 + 0, 0.0, 1.0, 1.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC2 + 0, 0.0, 1.0, 1.0, "Portamento Lag");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC2 + 1, 0.0, 1.0, 0.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC2 + 0, 0.0, 1.0, 1.0, "Portamento Lag");		 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC2 + 0, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC2 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC2 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC2 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC2 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC2 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_FM_OSC3 + 0, 0.0, 1.0, 1.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC3 + 0, 0.0, 1.0, 1.0, "Portamento Lag");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC3 + 1, 0.0, 1.0, 0.0, "Portamento Lag");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC3 + 0, 0.0, 1.0, 1.0, "Portamento Lag");		 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC3 + 0, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC3 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC3 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC3 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC3 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC3 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_SH_LFO_KEY, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_SH + 0, 0.0, 1.0, 1.0, "Portamento Lag");	 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_SH_LFO_KEY, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_SH + 0, 0.0, 1.0, 1.0, " ");	 //, " ",0.0, 1.0, 0.0);
 
 		configParam(SWITCH_PARAM_AUDIO + 0, 0.0, 1.0, 1.0, "Noise / Ring Mod Switch "); //, " ",0.0, 1.0, 0.0);
-		//configParam(SWITCH_PARAM_AUDIO + 1, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		//configParam(SWITCH_PARAM_AUDIO + 2, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		//configParam(SWITCH_PARAM_AUDIO + 3, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		//configParam(SWITCH_PARAM_AUDIO + 1, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		//configParam(SWITCH_PARAM_AUDIO + 2, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		//configParam(SWITCH_PARAM_AUDIO + 3, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
 		configParam(SWITCH_PARAM_FILTER + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_FILTER + 1, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
@@ -1228,10 +1216,10 @@ struct Odyssey : Module
 
 		configParam(SWITCH_PARAM_AR_ADSR + 0, 0.0, 1.0, 0.0, " ");
 
-		configParam(SWITCH_PARAM_ADSR1_SW1, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		//configParam(SWITCH_PARAM_ADSR1_SW2, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_ADSR2_SW1, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
-		//configParam(SWITCH_PARAM_ADSR2_SW2, 0.0, 1.0, 1.0, "Portamento Lag"); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_ADSR1_SW1, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		//configParam(SWITCH_PARAM_ADSR1_SW2, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_ADSR2_SW1, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
+		//configParam(SWITCH_PARAM_ADSR2_SW2, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
 		vuMeter.lambda = 1 / 0.1f;
 		vuDivider.setDivision(16);
@@ -1320,11 +1308,12 @@ struct Odyssey : Module
 					params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), 
 					vel_in[i], //lin
 					OUT_OUTPUT_AR_ADSR[i]);   //exp
-			vca2[i].step(OUT_HP[i], 
-					params[LEVEL1_PARAM_VCA].getValue(),  
-					vel_in[i],
-					10);
-			oddy_poly_out[i] = (vca1[i].v + vca2[i].v); // / 10;
+			//vca2[i].step(OUT_HP[i], 
+					//params[LEVEL1_PARAM_VCA].getValue(),  
+					//vel_in[i],
+					//10);
+			//oddy_poly_out[i] = (vca1[i].v + vca2[i].v); // / 10;
+			oddy_poly_out[i] = vca1[i].v; // / 10;
 		}
 		outputs[MAIN_AUDIO_OUT].setChannels(channels);
 		outputs[MAIN_AUDIO_OUT].writeVoltages(oddy_poly_out);
@@ -2201,10 +2190,10 @@ struct Odyssey : Module
 			//IN_CV_HPF_CUTOFF
 			//params[CMOD_PARAM].getValue() = 0.5f;
 			//params[Q_PARAM].getValue() = 0.0f;
-			//PARAM_Q_HPF = 0.0f;
+			HPF_Q_PARAM = 0.0f;
 			//CUTOFF_INPUT_HPF = 0.0f;
 			float cfreq = pow(2.0f, rescale(clamp(params[HPF_FILTER_FREQ].getValue() + params[HPF_FMOD_PARAM].getValue() * inputs[IN_CV_HPF_CUTOFF].getVoltage() / 5.0f, 0.0f, 1.0f), 0.0f, 1.0f, 4.5f, 13.0f));
-			float q = 10.0f * clamp(0.f + params[HPF_Q_PARAM].getValue() * 0.2f, 0.1f, 1.0f);
+			float q = 10.0f * clamp(0.f + HPF_Q_PARAM * 0.2f, 0.1f, 1.0f);
 			hpfFilter[i].setParams(cfreq, q, args.sampleRate);
 			if (!inputs[INPUT_EXT_VCF].isConnected())
 			{
@@ -2217,7 +2206,6 @@ struct Odyssey : Module
 				HPFin[i] =inputs[INPUT_EXT_VCF].getVoltage(i);
 				hpfFilter[i].calcOutput(HPFin[i]);
 			}
-			
 			OUT_HP[i] = hpfFilter[i].hp * 5.0f;
 		}
 		//outputs[OUT_OUTPUT_1].setChannels(channels);
@@ -2348,16 +2336,16 @@ struct OdysseyWidget : ModuleWidget
 		////   LFO
 		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(499, 50), module, Odyssey::PHASE_LIGHT));
 		////   VU
-		addChild(createLight<SmallLight<RedLight>>(Vec(734, 202), module, Odyssey::VU1_LIGHT + 0));
-		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 210), module, Odyssey::VU1_LIGHT + 1));
-		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 218), module, Odyssey::VU1_LIGHT + 2));
-		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 226), module, Odyssey::VU1_LIGHT + 3));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 234), module, Odyssey::VU1_LIGHT + 4));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 242), module, Odyssey::VU1_LIGHT + 5));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 250), module, Odyssey::VU1_LIGHT + 6));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 258), module, Odyssey::VU1_LIGHT + 7));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 266), module, Odyssey::VU1_LIGHT + 8));
-		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 274), module, Odyssey::VU1_LIGHT + 9));
+		addChild(createLight<SmallLight<RedLight>>(Vec(734, 55), module, Odyssey::VU1_LIGHT + 0));
+		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 63), module, Odyssey::VU1_LIGHT + 1));
+		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 71), module, Odyssey::VU1_LIGHT + 2));
+		addChild(createLight<SmallLight<YellowLight>>(Vec(734, 79), module, Odyssey::VU1_LIGHT + 3));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 87), module, Odyssey::VU1_LIGHT + 4));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 95), module, Odyssey::VU1_LIGHT + 5));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 103), module, Odyssey::VU1_LIGHT + 6));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 111), module, Odyssey::VU1_LIGHT + 7));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 119), module, Odyssey::VU1_LIGHT + 8));
+		addChild(createLight<SmallLight<GreenLight>>(Vec(734, 127), module, Odyssey::VU1_LIGHT + 9));
 
 		////   ADSR lights Bottom Red
 		addChild(createLight<SmallLight<RedLight>>(Vec(779, 197), module, Odyssey::ATTACK_LIGHT_1));
@@ -2415,7 +2403,7 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_Davies15_Grey>(Vec(495, 170), module, Odyssey::WAVE_ATTEN_LFO));
 				
 		/////////////////////  output for testing   far left column    //////////////////////
-		addOutput(createOutput<sts_Port>(Vec(35, 325), module, Odyssey::OUT_OUTPUT_1));
+		//addOutput(createOutput<sts_Port>(Vec(35, 325), module, Odyssey::OUT_OUTPUT_1));
         
 		//////////////////////////////////////// Add sliders Top Row   ///////////////////////
 
@@ -2443,11 +2431,11 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_Davies15_Grey>(Vec(608, 142), module, Odyssey::FREQ_CV_PARAM_VCF));
 		addParam(createParam<sts_SlidePotBlack>(Vec(632, 57), module, Odyssey::RES_PARAM_VCF));	 //, 0.f, 1.f, 0.f));
 		addParam(createParam<sts_SlidePotBlack>(Vec(659, 57), module, Odyssey::DRIVE_PARAM_VCF));   //, 0.f, 1.f, 0.f));
-		addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_Q_PARAM)); //, -1.f, 1.f, 0.f));
-		addParam(createParam<sts_SlidePotBlack>(Vec(713, 57), module, Odyssey::HPF_FILTER_FREQ));
-		addParam(createParam<sts_Davies15_Grey>(Vec(716, 142), module, Odyssey::HPF_FMOD_PARAM)); //, 0.0f, 1.0f, 0.0f));
-		
-		addParam(createParam<sts_SlidePotBlack>(Vec(740, 57), module, Odyssey::LEVEL1_PARAM_VCA)); //, 0.0f, 1.0f, 0.0f));   //  vca Level
+		//addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_Q_PARAM)); //, -1.f, 1.f, 0.f));
+		addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_FILTER_FREQ));
+		addParam(createParam<sts_Davies15_Grey>(Vec(689, 142), module, Odyssey::HPF_FMOD_PARAM)); //, 0.0f, 1.0f, 0.0f));
+		addParam(createParam<sts_SlidePotRed>(Vec(740, 57), module, Odyssey::SLIDER_PARAM_AR_ADSR_LVL)); //, 0.0, 1.0, 1.0));
+		//addParam(createParam<sts_SlidePotBlack>(Vec(740, 57), module, Odyssey::LEVEL1_PARAM_VCA)); //, 0.0f, 1.0f, 0.0f));   //  vca Level
 
 		addParam(createParam<sts_SlidePotPink>(Vec(772, 57), module, Odyssey::ATTACK_PARAM_2));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(799, 57), module, Odyssey::DECAY_PARAM_2));   //, 0.0, 1.0, 0.0));
@@ -2476,27 +2464,16 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_SlidePotGreen>(Vec(605, 204), module, Odyssey::SLIDER_PARAM_TO_AUDIO_LVL + 2)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotTeal>(Vec(632, 204), module, Odyssey::SLIDER_PARAM_TO_AUDIO_LVL + 3));  //, 0.0, 1.0, 0.0));
 
-		//addParam(createParam<BefacoPush>(Vec(620, 350), module, Odyssey::PARAM_SAVE_PRESET)); //, 0.0, 1.0, 0.0
-		//addParam(createParam<BefacoPush>(Vec(590, 350), module, Odyssey::PARAM_LOAD_PRESET)); //, 0.0, 1.0, 0.0
-
 		addParam(createParam<sts_SlidePotBlack>(Vec(659, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 0));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(686, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 1)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotRed>(Vec(713, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 2));	//, 0.0, 1.0, 0.0));
 
-		addParam(createParam<sts_SlidePotRed>(Vec(740, 204), module, Odyssey::SLIDER_PARAM_AR_ADSR_LVL)); //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(746, 153), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0)); //, 0.0, 1.0, 0.0));
 
 		addParam(createParam<sts_SlidePotRed>(Vec(772, 204), module, Odyssey::ATTACK_PARAM_1));  //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(799, 204), module, Odyssey::DECAY_PARAM_1));   //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(826, 204), module, Odyssey::SUSTAIN_PARAM_1)); //, 0.0f, 1.0f, 1.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(853, 204), module, Odyssey::RELEASE_PARAM_1)); //, 0.0f, 1.0f, 0.0f));
-
-		/////////////                 Output Ports
-
-		//addInput(createInput<sts_Port>(Vec(114, 149), module, Odyssey::VCF_INPUT));   //filter in
-		//addOutput(createOutput<sts_Port>(Vec(114, 192), module, Odyssey::LPF_OUTPUT_VCF)); // Filter out
-		//addOutput(createOutput<sts_Port>(Vec(114, 235), module, Odyssey::NOISE_OUT));   // noise out
-		//addOutput(createOutput<sts_Port>(Vec(114, 278), module, Odyssey::ENVELOPE_OUTPUT_ADSR));
-		//addOutput(createOutput<sts_Port>(Vec(114, 321), module, Odyssey::OUT_OUTPUT_AR_ADSR));
 
 		/////////////////////////////////// Switches Bottom row   +3  -18   215  320     SWITCH_PARAM_LFO-MOD-FM_OSC1, SWITCH_PARAM_LFO-MOD-PWM_OSC1
 		addParam(createParam<sts_CKSS>(Vec(218, 302), module, Odyssey::SWITCH_PARAM_FM_OSC1 + 0));			 //, 0.0, 1.0, 1.0));
@@ -2531,7 +2508,7 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_CKSS>(Vec(692, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_VCF)); //, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(719, 302), module, Odyssey::SWITCH_PARAM_FILTER + 2));  //, 0.0, 1.0, 1.0));
 
-		addParam(createParam<sts_CKSS>(Vec(746, 302), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0)); //, 0.0, 1.0, 0.0));
+		
 
 		addParam(createParam<sts_CKSS>(Vec(778, 302), module, Odyssey::SWITCH_PARAM_ADSR1_SW1)); //, 0.0, 1.0, 1.0));
 		//addParam(createParam<sts_CKSS>(Vec(802, 301), module, Odyssey::SWITCH_PARAM_ADSR1_SW2, 0.0, 1.0, 1.0));
