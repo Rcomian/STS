@@ -7,7 +7,7 @@ void init(rack::Plugin *p)
 {
 	pluginInstance = p;
 		
-	p->addModel(modelSwitch2to1x11);
+	//p->addModel(modelSwitch2to1x11);
 	p->addModel(modelOdyssey);
 	p->addModel(modelIlliad);
 	p->addModel(modelPolySEQ16);

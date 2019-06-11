@@ -12,12 +12,6 @@
 	"donateUrl": "",
 		"modules": [
 		{
-			"slug": "Switch2to1x11",
-			"name": "Switch2to1x11",
-			"description": "2 -> 1 x 11 Switch - A/B Switch",
-			"tags": ["Switch" , "Polyphonic"]
-		},
-		{
 			"slug": "Odyssey",
 			"name": "Oddy",
 			"description": "Poly Synth",

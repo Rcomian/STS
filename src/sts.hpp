@@ -6,7 +6,7 @@ using namespace rack;
 
 extern Plugin *pluginInstance;
 
-extern Model *modelSwitch2to1x11;
+//extern Model *modelSwitch2to1x11;
 extern Model *modelOdyssey;
 extern Model *modelIlliad;
 extern Model *modelPolySEQ16;

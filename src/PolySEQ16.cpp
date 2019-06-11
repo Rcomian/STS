@@ -591,7 +591,7 @@ struct PolySEQ16 : Module {
                 lights[GATE2_LIGHTS_R4 + i].setSmoothBrightness((gateIn && i == index) ? (gates2_R4[i] ? 1.f : 0.33) : (gates2_R4[i] ? 0.66 : 0.0), args.sampleTime);
 				lights[TRIG_LIGHTS_R4 + i].setSmoothBrightness((gateIn && i == index) ? (trigs_R4[i] ? 1.f : 0.33) : (trigs_R4[i] ? 0.66 : 0.0), args.sampleTime);
 			
-				outputs[GATE_OUTPUT + i].setVoltage((running && gateIn && i == index && gates2_R4[i] ) ? 10.f : 0.f);
+				outputs[GATE_OUTPUT + i].setVoltage((running && gateIn && i == index ) ? 10.f : 0.f);
 				//outputs[CH_GATE_OUTPUT + i].setVoltage((running && gateIn && i == index && (gates_R1[i] || gates_R2[i]) )  ? 10.f : 0.f);			
 			}
 		//  Row Outputs
