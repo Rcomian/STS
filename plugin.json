@@ -1,14 +1,14 @@
 {
 	"slug": "STS",
 	"version": "1.0.0",
-	"license": "GPLv3",
+	"license": "GPL-3.0-only",
 	"name": "STS",
 	"author": "STS",
-	"authorEmail": "",
+	"authorEmail": "sts.modules@gmail.com",
 	"authorUrl": "",
-	"pluginUrl": "",
-  	"manualUrl": "",
-	"sourceUrl": "",
+	"pluginUrl": "https://github.com/SmallTownSound/STS/",
+  	"manualUrl": "https://github.com/SmallTownSound/STS/blob/V1/README.md",
+	"sourceUrl": "https://github.com/SmallTownSound/STS/blob/V1/README.md",
 	"donateUrl": "",
 		"modules": [
 		{
