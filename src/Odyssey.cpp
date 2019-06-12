@@ -472,80 +472,6 @@ struct LowFrequencyOscillator {
 	}
 };
 
-/*
-struct LowFrequencyOscillatorOLD
-{
-	float phase = 0.f;
-	float pw = 0.5f;
-	float freq = 1.f;
-	bool offset = false;
-	bool invert = false;
-	dsp::SchmittTrigger resetTrigger;
-
-	LowFrequencyOscillator() {}
-	void setPitch(float pitch)
-	{
-		pitch = std::fmin(pitch, 10.f);
-		freq = std::pow(2.f, pitch);
-	}
-	void setPulseWidth(float pw_)
-	{
-		const float pwMin = 0.01f;
-		pw = clamp(pw_, pwMin, 1.f - pwMin);
-	}
-	//void setReset(float reset) {
-	//	if (resetTrigger.process(reset / 0.01f)) {
-	//		phase = 0.f;
-	//	}
-	//}
-	void step(float dt)
-	{
-		float deltaPhase = std::fmin(freq * dt, 0.5f);
-		phase += deltaPhase;
-		if (phase >= 1.f)
-			phase -= 1.f;
-	}
-	float sin()
-	{
-		if (offset)
-			return 1.f - std::cos(2 * M_PI * phase) * (invert ? -1.f : 1.f);
-		else
-			return std::sin(2 * M_PI * phase) * (invert ? -1.f : 1.f);
-	}
-	float tri(float x)
-	{
-		return 4.f * std::fabs(x - std::round(x));
-	}
-	float tri()
-	{
-		if (offset)
-			return tri(invert ? phase - 0.5f : phase);
-		else
-			return -1.f + tri(invert ? phase - 0.25f : phase - 0.75f);
-	}
-	float saw(float x)
-	{
-		return 2.f * (x - std::round(x));
-	}
-	float saw()
-	{
-		if (offset)
-			return invert ? 2.f * (1.f - phase) : 2.f * phase;
-		else
-			return saw(phase) * (invert ? -1.f : 1.f);
-	}
-	float sqr()
-	{
-		float sqr = (phase < pw) ^ invert ? 1.f : -1.f;
-		return offset ? sqr + 1.f : sqr;
-	}
-	float light()
-	{
-		return std::sin(2 * M_PI * phase);
-	}
-};
-*/
-
 
 ////////  Oscillator  /////  EvenVCO  ///
 struct Oscillator
@@ -2431,19 +2357,18 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_Davies15_Grey>(Vec(608, 142), module, Odyssey::FREQ_CV_PARAM_VCF));
 		addParam(createParam<sts_SlidePotBlack>(Vec(632, 57), module, Odyssey::RES_PARAM_VCF));	 //, 0.f, 1.f, 0.f));
 		addParam(createParam<sts_SlidePotBlack>(Vec(659, 57), module, Odyssey::DRIVE_PARAM_VCF));   //, 0.f, 1.f, 0.f));
-		//addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_Q_PARAM)); //, -1.f, 1.f, 0.f));
 		addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_FILTER_FREQ));
 		addParam(createParam<sts_Davies15_Grey>(Vec(689, 142), module, Odyssey::HPF_FMOD_PARAM)); //, 0.0f, 1.0f, 0.0f));
+		//addParam(createParam<sts_SlidePotBlack>(Vec(713, 57), module, Odyssey::HPF_Q_PARAM)); //, -1.f, 1.f, 0.f));    BLANK
 		addParam(createParam<sts_SlidePotRed>(Vec(740, 57), module, Odyssey::SLIDER_PARAM_AR_ADSR_LVL)); //, 0.0, 1.0, 1.0));
-		//addParam(createParam<sts_SlidePotBlack>(Vec(740, 57), module, Odyssey::LEVEL1_PARAM_VCA)); //, 0.0f, 1.0f, 0.0f));   //  vca Level
-
+		addParam(createParam<sts_CKSS>(Vec(746, 153), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0)); //, 0.0, 1.0, 0.0));
+		
 		addParam(createParam<sts_SlidePotPink>(Vec(772, 57), module, Odyssey::ATTACK_PARAM_2));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(799, 57), module, Odyssey::DECAY_PARAM_2));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(826, 57), module, Odyssey::SUSTAIN_PARAM_2)); //, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(853, 57), module, Odyssey::RELEASE_PARAM_2)); //, 0.0, 1.0, 0.0));
 
 		//////////////////////////////////////////// Add sliders Bottom Row
-
 		addParam(createParam<sts_SlidePotPink>(Vec(212, 204), module, Odyssey::SLIDER_PARAM_FM_OSC1_LVL + 0));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(239, 204), module, Odyssey::SLIDER_PARAM_FM_OSC1_LVL + 1)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotBlue>(Vec(266, 204), module, Odyssey::PW_PARAM_OSC1));				  //, -1.0f, 1.0f, 0.0f));
@@ -2467,9 +2392,8 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_SlidePotBlack>(Vec(659, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 0));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(686, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 1)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotRed>(Vec(713, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 2));	//, 0.0, 1.0, 0.0));
-
-		addParam(createParam<sts_CKSS>(Vec(746, 153), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0)); //, 0.0, 1.0, 0.0));
-
+		//addParam(createParam<sts_SlidePotBlack>(Vec(740, 204), module, Odyssey::LEVEL1_PARAM_VCA)); //, 0.0f, 1.0f, 0.0f));   BLANK
+		
 		addParam(createParam<sts_SlidePotRed>(Vec(772, 204), module, Odyssey::ATTACK_PARAM_1));  //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(799, 204), module, Odyssey::DECAY_PARAM_1));   //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(826, 204), module, Odyssey::SUSTAIN_PARAM_1)); //, 0.0f, 1.0f, 1.0f));
@@ -2508,12 +2432,8 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_CKSS>(Vec(692, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_VCF)); //, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(719, 302), module, Odyssey::SWITCH_PARAM_FILTER + 2));  //, 0.0, 1.0, 1.0));
 
-		
-
 		addParam(createParam<sts_CKSS>(Vec(778, 302), module, Odyssey::SWITCH_PARAM_ADSR1_SW1)); //, 0.0, 1.0, 1.0));
-		//addParam(createParam<sts_CKSS>(Vec(802, 301), module, Odyssey::SWITCH_PARAM_ADSR1_SW2, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(778, 153), module, Odyssey::SWITCH_PARAM_ADSR2_SW1)); //, 0.0, 1.0, 1.0));
-																									  //addParam(createParam<sts_CKSS>(Vec(802, 153), module, Odyssey::SWITCH_PARAM_ADSR2_SW2, 0.0, 1.0, 1.0));
 	}
 
 	void step() override
