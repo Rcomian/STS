@@ -1,11 +1,7 @@
 {
 	"slug": "STS",
 	"version": "1.0.0",
-<<<<<<< HEAD
 	"license": "GPL-3.0-only",
-=======
-	"license": "GNU General Public License v3.0 only",
->>>>>>> b767bd0c7d0ec4e76b096212f5a99eb20c69e112
 	"name": "STS",
 	"author": "STS",
 	"authorEmail": "sts.modules@gmail.com",

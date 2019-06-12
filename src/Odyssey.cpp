@@ -591,73 +591,70 @@ struct VCA
 	//out.value = v;
 	}
 };
-/*
+/* 
 struct VCA_SIMD_POLY
 {
 
-    void step(
-            int channels,
-            float in, 
-            float level,  
-            float lin, 
-            float exp            
+    void step(int channels, float in, float level,  float lin, float exp)           
     {
         // Get input
-		int channels = in.getChannels();
+		//int channels = in.getChannels();
+		float out
 		simd::float_4 v[4];
-		for (int c = 0; c < channels; c += 4) {
-			v[c / 4] = simd::float_4::load(&in.voltages[c]);
+		for (int c = 0; c < channels; c += 4) 
+		{
+			v[c / 4] = simd::float_4::load(in.getVoltages(c));
 		}
 
 		// Apply knob gain
 		float gain = level.getValue();
-		for (int c = 0; c < channels; c += 4) {
+		for (int c = 0; c < channels; c += 4) 
+		{
 			v[c / 4] *= gain;
 		}
 
 		// Apply linear CV gain
-		if (lin.isConnected()) {
-			if (lin.getChannels() == 1) {
-				float cv = lin.getVoltage() / 10.f;
+		
+		if (lin.isPolyphonic()) {
+			for (int c = 0; c < channels; c += 4) {
+				simd::float_4 cv = simd::float_4::load(lin.getVoltages(c)) / 10.f;
 				cv = clamp(cv, 0.f, 1.f);
-				for (int c = 0; c < channels; c += 4) {
-					v[c / 4] *= cv;
-				}
-			}
-			else {
-				for (int c = 0; c < channels; c += 4) {
-					simd::float_4 cv = simd::float_4::load(&lin.voltages[c]) / 10.f;
-					cv = clamp(cv, 0.f, 1.f);
-					v[c / 4] *= cv;
-				}
+				v[c / 4] *= cv;
 			}
 		}
-
+		else {
+			float cv = lin.getVoltage() / 10.f;
+			cv = clamp(cv, 0.f, 1.f);
+			for (int c = 0; c < channels; c += 4) {
+				v[c / 4] *= cv;
+			}
+		}
+		
 		// Apply exponential CV gain
 		const float expBase = 50.f;
-		if (exp.isConnected()) {
-			if (exp.getChannels() == 1) {
-				float cv = exp.getVoltage() / 10.f;
+		
+		if (exp.isPolyphonic()) {
+			for (int c = 0; c < channels; c += 4) {
+				simd::float_4 cv = simd::float_4::load(exp.getVoltages(c)) / 10.f;
 				cv = clamp(cv, 0.f, 1.f);
-				cv = rescale(std::pow(expBase, cv), 1.f, expBase, 0.f, 1.f);
-				for (int c = 0; c < channels; c += 4) {
-					v[c / 4] *= cv;
-				}
-			}
-			else {
-				for (int c = 0; c < channels; c += 4) {
-					simd::float_4 cv = simd::float_4::load(&exp.voltages[c]) / 10.f;
-					cv = clamp(cv, 0.f, 1.f);
-					cv = rescale(pow(expBase, cv), 1.f, expBase, 0.f, 1.f);
-					v[c / 4] *= cv;
-				}
+				cv = rescale(pow(expBase, cv), 1.f, expBase, 0.f, 1.f);
+				v[c / 4] *= cv;
 			}
 		}
+		else {
+			float cv = exp.getVoltage() / 10.f;
+			cv = clamp(cv, 0.f, 1.f);
+			cv = rescale(std::pow(expBase, cv), 1.f, expBase, 0.f, 1.f);
+			for (int c = 0; c < channels; c += 4) {
+				v[c / 4] *= cv;
+			}
+		}
+		
 
 		// Set output
 		out.setChannels(channels);
 		for (int c = 0; c < channels; c += 4) {
-			v[c / 4].store(&out.voltages[c]);
+			v[c / 4].store(out.getVoltages(c));
 		}
 	}
 };
@@ -995,9 +992,8 @@ struct Odyssey : Module
 	PinkFilter pinkFilter;
 	LadderFilter filter[MAX_POLY_CHANNELS];
 	VCA vca1[MAX_POLY_CHANNELS];
-	//VCA vca2[MAX_POLY_CHANNELS];
-	//VCA_SIMD_POLY vca1A[MAX_POLY_CHANNELS];
-	//VCA_SIMD_POLY vca2A[MAX_POLY_CHANNELS];
+	//VCA_SIMD_POLY vca1[MAX_POLY_CHANNELS];
+	
 
 	Mix_Loop3 FilterMix;
 	Mix_Loop4 AudioMix;
@@ -1129,6 +1125,7 @@ struct Odyssey : Module
 
 		configParam(SWITCH_PARAM_SH_LFO_KEY, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_SH + 0, 0.0, 1.0, 1.0, " ");	 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_SH + 1, 0.0, 1.0, 1.0, " ");	 //, " ",0.0, 1.0, 0.0);
 
 		configParam(SWITCH_PARAM_AUDIO + 0, 0.0, 1.0, 1.0, "Noise / Ring Mod Switch "); //, " ",0.0, 1.0, 0.0);
 		//configParam(SWITCH_PARAM_AUDIO + 1, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
@@ -1140,7 +1137,7 @@ struct Odyssey : Module
 		configParam(SWITCH_PARAM_LFO_MOD_VCF, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_FILTER + 2, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_AR_ADSR + 0, 0.0, 1.0, 0.0, " ");
+		configParam(SWITCH_PARAM_AR_ADSR + 0, 0.0, 1.0, 1.0, " ");
 
 		configParam(SWITCH_PARAM_ADSR1_SW1, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 		//configParam(SWITCH_PARAM_ADSR1_SW2, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
@@ -1181,984 +1178,975 @@ struct Odyssey : Module
 
 	void process(const ProcessArgs &args) override
 	{
-		using simd::float_4;
 		
-		//  Should add if...
-		//outputs[MAIN_AUDIO_OUT].isConnected() = true;
-
-		////////////////////////////////////////////////////////
-		///////////////////////  VU Meter //////////////////////
-		////////////////////////////////////////////////////////
-
-		if (vuDivider.process())
+		if (inputs[IN_VOLT_OCTAVE_INPUT_1].isConnected())
 		{
+			channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
+		
+			using simd::float_4;
+		
+			////////////////////////////////////////////////////////
+			///////////////////////  VU Meter //////////////////////
+			////////////////////////////////////////////////////////
 			
-			vuMeter.process(args.sampleTime * vuDivider.getDivision(), outputs[MONO_OUTPUT].value / 10.f);
-		}
-
-		// Set channel lights infrequently
-		if (lightDivider.process())
-		{
-			for (int i = 0; i < 10; i++)
+			if (vuDivider.process())
 			{
-				lights[VU1_LIGHT + i].setBrightness(vuMeter.getBrightness(-3.f * i, -3.f * (i - 1)));
+				vuMeter.process(args.sampleTime * vuDivider.getDivision(), outputs[MONO_OUTPUT].value / 10.f);
 			}
-		}
 
-		////////////////////////////////////////////////////////
-		//////////   VCA 1 ADSR & VCA 2 NO ADSR     ////////////
-		////////////////////////////////////////////////////////
-		
-		if (inputs[IN_VELOCITY].isConnected())
-		
-		{
-			for (int i = 0; i < channels; ++i)
+			// Set channel lights infrequently
+			if (lightDivider.process())
 			{
-				vel_in[i] = inputs[IN_VELOCITY].getPolyVoltage(i);
+				for (int i = 0; i < 10; i++)
+				{
+					lights[VU1_LIGHT + i].setBrightness(vuMeter.getBrightness(-3.f * i, -3.f * (i - 1)));
+				}
 			}
-		}
-		else
-		{
-			for (int i = 0; i < channels; ++i)
+			
+			////////////////////////////////////////////////////////
+			//////////               VCA 1 ADSR      ////////////
+			////////////////////////////////////////////////////////
+			
+			if (inputs[IN_VELOCITY].isConnected())
+			
 			{
-				vel_in[i] = 10.0f;
-			}
-		}
-		
-		//outputs[OUT_OUTPUT_1].setChannels(channels);
-		//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
-	
-		for (int i = 0; i < channels; ++i)
-		{
-			vca1[i].step(OUT_HP[i], 
-					params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), 
-					vel_in[i], //lin
-					OUT_OUTPUT_AR_ADSR[i]);   //exp
-			//vca2[i].step(OUT_HP[i], 
-					//params[LEVEL1_PARAM_VCA].getValue(),  
-					//vel_in[i],
-					//10);
-			//oddy_poly_out[i] = (vca1[i].v + vca2[i].v); // / 10;
-			oddy_poly_out[i] = vca1[i].v; // / 10;
-		}
-		outputs[MAIN_AUDIO_OUT].setChannels(channels);
-		outputs[MAIN_AUDIO_OUT].writeVoltages(oddy_poly_out);
-
-		sum = 0.f;
-		for (int i = 0; i < channels; i++) {
-			sum += oddy_poly_out[i];
-		}
-		outputs[MONO_OUTPUT].setVoltage(sum);
-		
-
-
-		/////////////////////////////////////////////////////////
-		///////////////  ADSR  Input switches   /////////////////
-		//////////  SWITCH_PARAM_ADSR1_SW1 ADSR2_SW1 ////////////
-
-		//if (inputs[IN_TRIGGER_INPUT_1].isConnected())
-		//{
-		//	inputs[IN_TRIGGER_INPUT_1].setChannels(channels);
-		//	inputs[IN_TRIGGER_INPUT_1].writeVoltages(trigger_signal_in);
-		//}
-	
-		if (params[SWITCH_PARAM_ADSR1_SW1].getValue()  && !inputs[IN_GATE_INPUT_1].isConnected())
-		{
-			for (int i = 0; i < channels; ++i)
-			{
-				gate_signal_ADSR1[i] = LFO_SQR_OUTPUT[i];
-			}
-		}
-		
-		if (params[SWITCH_PARAM_ADSR2_SW1].getValue() && !inputs[IN_GATE_INPUT_1].isConnected())
-		{
-			for (int i = 0; i < channels; ++i)
-			{
-				gate_signal_ADSR2[i] = LFO_SQR_OUTPUT[i];
-			}
-		}
-		////////////////////////////////////////////////////////
-		//////////////////  ADSR 1 Bottom      /////////////////
-		////////////////////////////////////////////////////////
-
-		for (int i = 0; i < channels; ++i)
-		{
-			adsr1[i].step(
-				inputs[IN_GATE_INPUT_1].getPolyVoltage(i),
-				inputs[IN_TRIGGER_INPUT_1].getPolyVoltage(i),
-				//trigger_signal_in[i],
-				params[ATTACK_PARAM_1].getValue(),
-				params[DECAY_PARAM_1].getValue(),
-				params[SUSTAIN_PARAM_1].getValue(),
-				params[RELEASE_PARAM_1].getValue(),
-				args.sampleTime);
-
-			ENVELOPE_OUTPUT_ADSR_1[i] = 10.0f * adsr1[i].env;
-
-			// Lights
-			lights[ATTACK_LIGHT_1].value = (adsr1[0].gated && !adsr1[0].decaying) ? 1.0f : 0.0f;
-			lights[DECAY_LIGHT_1].value = (adsr1[0].gated && adsr1[0].decaying && !adsr1[0].sustaining) ? 1.0f : 0.0f;
-			lights[SUSTAIN_LIGHT_1].value = (adsr1[0].gated && adsr1[0].decaying && adsr1[0].sustaining) ? 1.0f : 0.0f;
-			lights[RELEASE_LIGHT_1].value = (!adsr1[0].gated && !adsr1[0].resting) ? 1.0f : 0.0f;
-		}
-
-		/////////////////////////////////////////////////////////
-		///////////////////     ADSR 2 Top      /////////////////
-		/////////////////////////////////////////////////////////
-
-		for (int i = 0; i < channels; ++i)
-		{
-			adsr2[i].step(
-				inputs[IN_GATE_INPUT_1].getPolyVoltage(i),
-				inputs[IN_TRIGGER_INPUT_1].getPolyVoltage(i),
-				//trigger_signal_in[i],
-				params[ATTACK_PARAM_2].getValue(),
-				params[DECAY_PARAM_2].getValue(),
-				params[SUSTAIN_PARAM_2].getValue(),
-				params[RELEASE_PARAM_2].getValue(),
-				args.sampleTime);
-
-			ENVELOPE_OUTPUT_ADSR_2[i] = 10.0f * adsr2[i].env;
-
-			// Lights
-			lights[ATTACK_LIGHT_2].value = (adsr2[id].gated && !adsr2[i].decaying) ? 1.0f : 0.0f;
-			lights[DECAY_LIGHT_2].value = (adsr2[i].gated && adsr2[i].decaying && !adsr2[i].sustaining) ? 1.0f : 0.0f;
-			lights[SUSTAIN_LIGHT_2].value = (adsr2[i].gated && adsr2[i].decaying && adsr2[i].sustaining) ? 1.0f : 0.0f;
-			lights[RELEASE_LIGHT_2].value = (!adsr2[i].gated && !adsr2[i].resting) ? 1.0f : 0.0f;
-		}
-
-		
-		
-		// Octave Switch
-		OUT_OUTPUT_OCTAVE = params[OCTAVE_PARAM].getValue();
-		// Pitch bend
-		if (inputs[IN_CV_PB].isConnected())
-		{
-			OUT_OUTPUT_PITCHBEND = inputs[IN_CV_PB].getVoltage() * params[ATTEN_PB].getValue();
-		}
-		else
-		{
-			OUT_OUTPUT_PITCHBEND = params[PITCHBEND_PARAM].getValue();
-		}
-
-		//////////// Sample and hold mixer   (2)  ////////////
-		///////////  SWITCH_PARAM_FILTER +0,1,2  /////////////
-		////////////  SWITCH_PARAM_LFO_MOD_VCF   /////////////
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #0 - Slider 1
-			if (params[SWITCH_PARAM_SH + 0].getValue())
-			{
-				F_IN0[i] = SAW_OUTPUT_OSC1[i];
+				for (int i = 0; i < channels; ++i)
+				{
+					vel_in[i] = inputs[IN_VELOCITY].getPolyVoltage(i);
+				}
 			}
 			else
 			{
-				F_IN0[i] = SQR_OUTPUT_OSC1[i];
+				for (int i = 0; i < channels; ++i)
+				{
+					vel_in[i] = 10.0f;
+				}
 			}
-
-			///  #1 - Slider 2
-			if (params[SWITCH_PARAM_SH + 1].getValue())
+			
+			//outputs[OUT_OUTPUT_1].setChannels(channels);
+			//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
+			
+			for (int i = 0; i < channels; ++i)
 			{
-				F_IN1[i] = NOISE_OUT[i];
-			}
-			else
-			{
-				F_IN1[i] = SQR_OUTPUT_OSC2[i];
-			}
-			///////////  Call Mix_Loop 2
-			S_H_Mix.step(F_IN0[i],
-						 F_IN1[i],
-						 params[SLIDER_PARAM_SH_LVL + 0].getValue(),
-						 params[SLIDER_PARAM_SH_LVL + 1].getValue());
+				vca1[i].step(OUT_HP[i], params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), vel_in[i], OUT_OUTPUT_AR_ADSR[i]);   //exp
+				oddy_poly_out[i] = vca1[i].v; // / 10;
+			}			
+			outputs[MAIN_AUDIO_OUT].setChannels(channels);
+			outputs[MAIN_AUDIO_OUT].writeVoltages(oddy_poly_out);
 
-			SH_MIX[i] = S_H_Mix.output;
-		}
-
-		////////////////////////////////////////////////////////
-		/////////////////    Sample & Hold    //////////////////
-		//////////////////////////////////Thanks to Southpole///
-		for (int i = 0; i < channels; ++i)
-		{
-			if (params[SWITCH_PARAM_SH_LFO_KEY].getValue())
-			{
-				TRIGGER_SH_INPUT[i] = LFO_OUTPUT[i]; 
+			sum = 0.f;
+			for (int i = 0; i < channels; i++) {
+				sum += oddy_poly_out[i];
 			}
-			else
-			{
-				TRIGGER_SH_INPUT[i] = inputs[IN_GATE_INPUT_1].getVoltage();
-			}
+			outputs[MONO_OUTPUT].setVoltage(sum);
+			
 
-			if (sh_trigger[i].process(TRIGGER_SH_INPUT[i]))
-				OUT_TO_LAG[i] = SH_MIX[i];
-			//OUTPUT_SH[i] = SH_MIX[i];
-		}
+
+			/////////////////////////////////////////////////////////
+			///////////////  ADSR  Input switches   /////////////////
+			//////////  SWITCH_PARAM_ADSR1_SW1 ADSR2_SW1 ////////////
+
+			//if (inputs[IN_TRIGGER_INPUT_1].isConnected())
+			//{
+			//	inputs[IN_TRIGGER_INPUT_1].setChannels(channels);
+			//	inputs[IN_TRIGGER_INPUT_1].writeVoltages(trigger_signal_in);
+			//}
 		
-		//	S/H lag
-		for (int i = 0; i < channels; ++i)
-		{
-			if (params[SLIDER_PARAM_LAG].value > 0.1f)
+			if (params[SWITCH_PARAM_ADSR1_SW1].getValue()  && !inputs[IN_GATE_INPUT_1].isConnected())
 			{
+				for (int i = 0; i < channels; ++i)
+				{
+					gate_signal_ADSR1[i] = LFO_SQR_OUTPUT[i];
+				}
+			}
+			
+			if (params[SWITCH_PARAM_ADSR2_SW1].getValue() && !inputs[IN_GATE_INPUT_1].isConnected())
+			{
+				for (int i = 0; i < channels; ++i)
+				{
+					gate_signal_ADSR2[i] = LFO_SQR_OUTPUT[i];
+				}
+			}
+			////////////////////////////////////////////////////////
+			//////////////////  ADSR 1 Bottom      /////////////////
+			////////////////////////////////////////////////////////
 
-				sh_slew[i].step(
-					OUT_TO_LAG[i],
-					params[SLIDER_PARAM_LAG].getValue(),
+			for (int i = 0; i < channels; ++i)
+			{
+				adsr1[i].step(
+					inputs[IN_GATE_INPUT_1].getPolyVoltage(i),
+					inputs[IN_TRIGGER_INPUT_1].getPolyVoltage(i),
+					//trigger_signal_in[i],
+					params[ATTACK_PARAM_1].getValue(),
+					params[DECAY_PARAM_1].getValue(),
+					params[SUSTAIN_PARAM_1].getValue(),
+					params[RELEASE_PARAM_1].getValue(),
 					args.sampleTime);
-				OUTPUT_SH[i] = sh_slew[i].out_SLEW;
-			}
-			else
-			{
-				OUTPUT_SH[i] = OUT_TO_LAG[i];
-			}
-		}
-		
-	
-		////////////////////////////////////////////////////////
-		//////////////////     Portamento     //////////////////
-		////////////////////////////////////////////////////////
-		channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
-		//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
 
-		if (inputs[IN_PORTA_ON_OFF].isConnected())
-		{
+				ENVELOPE_OUTPUT_ADSR_1[i] = 10.0f * adsr1[i].env;
+
+				// Lights
+				lights[ATTACK_LIGHT_1].value = (adsr1[0].gated && !adsr1[0].decaying) ? 1.0f : 0.0f;
+				lights[DECAY_LIGHT_1].value = (adsr1[0].gated && adsr1[0].decaying && !adsr1[0].sustaining) ? 1.0f : 0.0f;
+				lights[SUSTAIN_LIGHT_1].value = (adsr1[0].gated && adsr1[0].decaying && adsr1[0].sustaining) ? 1.0f : 0.0f;
+				lights[RELEASE_LIGHT_1].value = (!adsr1[0].gated && !adsr1[0].resting) ? 1.0f : 0.0f;
+			}
+
+			/////////////////////////////////////////////////////////
+			///////////////////     ADSR 2 Top      /////////////////
+			/////////////////////////////////////////////////////////
+
 			for (int i = 0; i < channels; ++i)
 			{
-				if (params[PARAM_PORTA].getValue() > 0 && inputs[IN_PORTA_ON_OFF].getPolyVoltage(i) > 0)
-				{
-					porta_slew[i].step(inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i), params[PARAM_PORTA].getValue(), args.sampleTime);
-					PORTA_OUT[i] = porta_slew[i].out_SLEW;
-				}
-				else
-				{
-					PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
-				}
-			}	
-		}
-		else
-		{
-			for (int i = 0; i < channels; ++i)
-			{
-				if (params[PARAM_PORTA].getValue() > 0)
-				{
-					porta_slew[i].step(inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i), params[PARAM_PORTA].getValue(), args.sampleTime);
-					PORTA_OUT[i] = porta_slew[i].out_SLEW;
-				}
-				else
-				{
-					PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
-				}
+				adsr2[i].step(
+					inputs[IN_GATE_INPUT_1].getPolyVoltage(i),
+					inputs[IN_TRIGGER_INPUT_1].getPolyVoltage(i),
+					//trigger_signal_in[i],
+					params[ATTACK_PARAM_2].getValue(),
+					params[DECAY_PARAM_2].getValue(),
+					params[SUSTAIN_PARAM_2].getValue(),
+					params[RELEASE_PARAM_2].getValue(),
+					args.sampleTime);
+
+				ENVELOPE_OUTPUT_ADSR_2[i] = 10.0f * adsr2[i].env;
+
+				// Lights
+				lights[ATTACK_LIGHT_2].value = (adsr2[id].gated && !adsr2[i].decaying) ? 1.0f : 0.0f;
+				lights[DECAY_LIGHT_2].value = (adsr2[i].gated && adsr2[i].decaying && !adsr2[i].sustaining) ? 1.0f : 0.0f;
+				lights[SUSTAIN_LIGHT_2].value = (adsr2[i].gated && adsr2[i].decaying && adsr2[i].sustaining) ? 1.0f : 0.0f;
+				lights[RELEASE_LIGHT_2].value = (!adsr2[i].gated && !adsr2[i].resting) ? 1.0f : 0.0f;
 			}
-		}
-		
-		
-		
-		//PORTA_OUT = inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltage();
-
-
-		////////////////////////////////////////////////////////
-		//////////////////////     LFO     /////////////////////
-		////////////////////////////////////////////////////////
-		float freqParam = params[FREQ_PARAM_LFO].getValue();
-		float waveParam = params[WAVE_ATTEN_LFO].getValue();
-		float fmParam = params[LFO_FM_PARAM].getValue();
-
-		//int channels = inputs[FM_INPUT].getChannels();   v/oct in for channels
-
-		for (int c = 0; c < channels; c += 4) {
-			auto *oscillator = &oscillators[c / 4];
-			float_4 pitch = freqParam;
-			// FM, polyphonic
-			pitch += float_4::load(inputs[IN_CV_LFO].getVoltages(c)) * fmParam;
-			oscillator->setPitch(pitch);
-
-			// Wave
-			float_4 wave = waveParam;
-			inputs[WAVE_CV_LFO].getVoltage();
-			if (inputs[WAVE_CV_LFO].getChannels() == 1)
-				wave += inputs[WAVE_CV_LFO].getVoltage() / 10.f * 3.f;
-			else
-				wave += float_4::load(inputs[WAVE_CV_LFO].getVoltages(c)) / 10.f * 3.f;
-			wave = clamp(wave, 0.f, 3.f);
-
-			// Settings
-			//oscillator->invert = (params[INVERT_PARAM].getValue() == 0.f);
-			//oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
-			oscillator->step(args.sampleTime);
-			//oscillator->setReset(inputs[RESET_INPUT].getVoltage());
-
-			// Outputs
-			if (inputs[WAVE_CV_LFO].isConnected()) 
-			{
-				//outputs[OUT_OUTPUT_1].setChannels(channels);
-				float_4 v = 0.f;
-				v += oscillator->sin() * simd::fmax(0.f, 1.f - simd::fabs(wave - 0.f));
-				v += oscillator->tri() * simd::fmax(0.f, 1.f - simd::fabs(wave - 1.f));
-				v += oscillator->saw() * simd::fmax(0.f, 1.f - simd::fabs(wave - 2.f));
-				v += oscillator->sqr() * simd::fmax(0.f, 1.f - simd::fabs(wave - 3.f));
-				v *= 5.f;
-				//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-				v.store(LFO_OUTPUT);
-			}
-			else
-			{
-				if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0) {
-					//outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->sin();
-					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1) {
-					//outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->tri();
-					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2) {
-					//outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->saw();
-					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-				else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3) {
-					//outputs[OUT_OUTPUT_1].setChannels(channels);
-					float_4 v = 5.f * oscillator->sqr();
-					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
-					v.store(LFO_OUTPUT);
-				}
-			}
-			
-		}
-		
-		// Light
-		if (lightDividerLFO.process()) {
-			if (channels == 1) {
-				float lightValue = oscillators[0].light().s[0];
-				lights[PHASE_LIGHT + 0].setSmoothBrightness(-lightValue, args.sampleTime * lightDivider.getDivision());
-				lights[PHASE_LIGHT + 1].setSmoothBrightness(lightValue, args.sampleTime * lightDivider.getDivision());
-				lights[PHASE_LIGHT + 2].setBrightness(0.f);
-			}
-			else {
-				lights[PHASE_LIGHT + 0].setBrightness(0.f);
-				lights[PHASE_LIGHT + 1].setBrightness(0.f);
-				lights[PHASE_LIGHT + 2].setBrightness(1.f);
-			}
-		}
-
-
-
-		////////////////////////////////////////////////////////
-		//////////////    FM IN OSC1         ///////////////////
-		////////////////////////////////////////////////////////
-		channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && !inputs[IN_CV_1].isConnected())
-			{
-				F_IN0[i] = SH_MIX[i]; //SH Mix
-			}
-			else if (params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && inputs[IN_CV_1].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
-			}
-			else if (!params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC1].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
-			}
-			else
-			{
-				F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
-			}
-
-			///  #2 - S&H & ADSR12 to Filter
-			if (params[SWITCH_PARAM_FM_OSC1 + 1].getValue())
-			{
-				F_IN1[i] = OUTPUT_SH[i]; // S&H
-			}
-			else
-			{
-				F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
-			}
-
-			///////////  Call Mix_Loop 2
-			FM_1_Mix.step(F_IN0[i],
-						  F_IN1[i],
-						  params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue(),
-						  params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue());
-
-			FM_INPUT_OSC1[i] = FM_1_Mix.output;
-			//FM_INPUT_OSC1[i] = clamp(FM_INPUT_OSC1[i], 0.f, 10.f);
-		
-		////////////////////////////////////////////////////////
-		///////////////   PWM IN To OSC1 1 (1)   ///////////////
-		////////////////////////////////////////////////////////
-		
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_PWM_OSC1].getValue())
-			{
-				PWM_TO_OSC1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
-			}
-			else if (!params[SWITCH_PARAM_PWM_OSC1].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC1].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				PWM_TO_OSC1[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
-			}
-			else
-			{
-				PWM_TO_OSC1[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
-			}
-
-			PWM_TO_OSC1[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC1_LVL].getValue(), 2.f);
-		
-		//////////////////////////////////////////////////////////////
-		/////////////////////  VCO 1   ///////////////////////////////
-		//////////////////////////////////////////////////////////////
-
-			PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC1[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ////////  +porta_out
-
-			oscillator1[i].step(
-				params[PW_PARAM_OSC1].getValue(),
-				PWM_TO_OSC1[i],
-				params[FINE_PARAM_OSC1].getValue(),
-				params[FREQ_PARAM_OSC1].getValue(),
-				FM_INPUT_OSC1[i],
-				PITCH_INPUT,
-				args.sampleTime);
-			// Set outputs
 
 			
 			
-			
-			if (inputs[WAVE_CV_OSC1].isConnected())
-            {                
-                wave[i] = params[WAVE_ATTEN_OSC1].getValue() + (inputs[WAVE_CV_OSC1].getPolyVoltage(i) / 3);
-            	wave[i] = clamp(wave[i], 0.f, 3.f);
-				
-				if (wave[i] < 1.f)
-					OSC1_OUTPUT[i] = (crossfade(oscillator1[i].sine, oscillator1[i].tri, wave[i])) * 5.f;
-				else if (wave[i] < 2.f)
-					OSC1_OUTPUT[i] = (crossfade(oscillator1[i].tri, oscillator1[i].saw, wave[i] - 1.f)) * 5.f;
-				else
-					OSC1_OUTPUT[i] = (crossfade(oscillator1[i].saw, oscillator1[i].square, wave[i] - 2.f)) * 5.f;
-			}
-            else
-            {
-				SIN_OUTPUT_OSC1[i] = 5.f * oscillator1[i].sine;
-				TRI_OUTPUT_OSC1[i] = 5.f * oscillator1[i].tri;
-				//EVEN_OUTPUT_OSC1 = 5.f * oscillator1[i].even;
-				SAW_OUTPUT_OSC1[i] = 5.f * oscillator1[i].saw;
-				SQR_OUTPUT_OSC1[i] = 5.f * oscillator1[i].square;
-				if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 0)
-				{
-					OSC1_OUTPUT[i] = 5.f * oscillator1[i].sine;
-				}
-				else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 1)
-				{
-					OSC1_OUTPUT[i] = 5.f * oscillator1[i].tri;
-				}
-				else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 2)
-				{
-					OSC1_OUTPUT[i] = 5.f * oscillator1[i].saw;
-				}
-				else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 3)
-				{
-					OSC1_OUTPUT[i] = 5.f * oscillator1[i].square;
-				}
-			}
-		}
-
-		////////////////////////////////////////////////////////
-		///////////////    FM IN OSC2    ///////////////////
-		////////////////////////////////////////////////////////
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && !inputs[IN_CV_1].isConnected())
+			// Octave Switch
+			OUT_OUTPUT_OCTAVE = params[OCTAVE_PARAM].getValue();
+			// Pitch bend
+			if (inputs[IN_CV_PB].isConnected())
 			{
-				F_IN0[i] = SH_MIX[i]; //SH Mix
-			}
-			else if (params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && inputs[IN_CV_1].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
-			}
-			else if (!params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC2].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+				OUT_OUTPUT_PITCHBEND = inputs[IN_CV_PB].getVoltage() * params[ATTEN_PB].getValue();
 			}
 			else
 			{
-				F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+				OUT_OUTPUT_PITCHBEND = params[PITCHBEND_PARAM].getValue();
 			}
 
-			///  #2 - S&H & ADSR12 to Filter
-			if (params[SWITCH_PARAM_FM_OSC2 + 1].getValue())
+			//////////// Sample and hold mixer   (2)  ////////////
+			///////////  SWITCH_PARAM_FILTER +0,1,2  /////////////
+			////////////  SWITCH_PARAM_LFO_MOD_VCF   /////////////
+			if (params[SLIDER_PARAM_SH_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_SH_LVL + 1].getValue() > 0.1f )
 			{
-				F_IN1[i] = OUTPUT_SH[i]; // S&H
-			}
-			else
-			{
-				F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
-			}
-
-			///////////  Call Mix_Loop 2
-			FM_2_Mix.step(F_IN0[i],
-						  F_IN1[i],
-						  params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue(),
-						  params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue());
-
-			FM_INPUT_OSC2[i] = FM_2_Mix.output;
-
-			//FM_INPUT_OSC2[i] = clamp(FM_INPUT_OSC2[i], 0.f, 10.f);
-		
-		////////////////////////////////////////////////////////
-		///////////////   PWM IN To OSC2        ///////////////
-		////////////////////////////////////////////////////////
-		
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_PWM_OSC2].getValue())
-			{
-				PWM_TO_OSC2[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
-			}
-			else if (!params[SWITCH_PARAM_PWM_OSC2].getValue() && !params[SWITCH_PARAM_LFO_MOD_VCF].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				PWM_TO_OSC2[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
-			}
-			else
-			{
-				PWM_TO_OSC2[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
-			}
-
-			PWM_TO_OSC2[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC2_LVL].getValue(), 2.f);
-		
-
-		//////////////////////////////////////////////////////////////
-		/////////////////////  VCO 2 /////////////////////////////////
-		//////////////////////////////////////////////////////////////
-
-		
-
-			PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC2[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ///+porta_out
-
-			oscillator2[i].step(
-				params[PW_PARAM_OSC2].getValue(),
-				PWM_TO_OSC2[i],
-				params[FINE_PARAM_OSC2].getValue(),
-				params[FREQ_PARAM_OSC2].getValue(),
-				FM_INPUT_OSC2[i],
-				PITCH_INPUT,
-				args.sampleTime);
-			// Set outputs
-
-			if (inputs[WAVE_CV_OSC2].isConnected())
-            {                
-                wave2[i] = params[WAVE_ATTEN_OSC2].getValue() + (inputs[WAVE_CV_OSC2].getPolyVoltage(i) / 3);
-            	wave2[i] = clamp(wave2[i], 0.f, 3.f);
-				
-				if (wave2[i] < 1.f)
-					OSC2_OUTPUT[i] = (crossfade(oscillator2[i].sine, oscillator2[i].tri, wave2[i])) * 5.f;
-				else if (wave2[i] < 2.f)
-					OSC2_OUTPUT[i] = (crossfade(oscillator2[i].tri, oscillator2[i].saw, wave2[i] - 1.f)) * 5.f;
-				else
-					OSC2_OUTPUT[i] = (crossfade(oscillator2[i].saw, oscillator2[i].square, wave2[i] - 2.f)) * 5.f;
-			}
-            else
-            {
-				SIN_OUTPUT_OSC2[i] = 5.f * oscillator2[i].sine;
-				TRI_OUTPUT_OSC2[i] = 5.f * oscillator2[i].tri;
-				//EVEN_OUTPUT_OSC2 = 5.f * oscillator2[i].even;
-				SAW_OUTPUT_OSC2[i] = 5.f * oscillator2[i].saw;
-				SQR_OUTPUT_OSC2[i] = 5.f * oscillator2[i].square;
-				if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 0)
+				for (int i = 0; i < channels; ++i)
 				{
-					OSC2_OUTPUT[i] = 5.f * oscillator2[i].sine;
-				}
-				else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 1)
-				{
-					OSC2_OUTPUT[i] = 5.f * oscillator2[i].tri;
-				}
-				else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 2)
-				{
-					OSC2_OUTPUT[i] = 5.f * oscillator2[i].saw;
-				}
-				else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 3)
-				{
-					OSC2_OUTPUT[i] = 5.f * oscillator2[i].square;
-				}
-			}
-		}
-
-		////////////////////////////////////////////////////////
-		//////////////    FM IN OSC3        ////////////////////
-		////////////////////////////////////////////////////////
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && !inputs[IN_CV_1].isConnected())
-			{
-				F_IN0[i] = SH_MIX[i]; //SH Mix
-			}
-			else if (params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && inputs[IN_CV_1].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
-			}
-			else if (!params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC3].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
-			}
-			else
-			{
-				F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
-			}
-
-			///  #2 - S&H & ADSR12 to Filter
-			if (params[SWITCH_PARAM_FM_OSC3 + 1].getValue())
-			{
-				F_IN1[i] = OUTPUT_SH[i]; // S&H
-			}
-			else
-			{
-				F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
-			}
-
-			///////////  Call Mix_Loop 3
-			FM_3_Mix.step(F_IN0[i],
-						  F_IN1[i],
-						  params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue(),
-						  params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue());
-			FM_INPUT_OSC3[i] = FM_3_Mix.output;
-
-			//FM_INPUT_OSC3[i] = clamp(FM_INPUT_OSC3[i], 0.f, 10.f);
-		
-		////////////////////////////////////////////////////////
-		///////////////   PWM IN To OSC3 1 (1)   ///////////////
-		////////////////////////////////////////////////////////
-		
-			///  #1 - MW, LFO,  ADSR to VCO
-			if (params[SWITCH_PARAM_PWM_OSC3].getValue())
-			{
-				PWM_TO_OSC3[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
-			}
-			else if (!params[SWITCH_PARAM_PWM_OSC3].getValue() && !params[SWITCH_PARAM_LFO_MOD_VCF].getValue() && inputs[IN_CV_MOD].isConnected())
-			{
-				PWM_TO_OSC3[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
-			}
-			else
-			{
-				PWM_TO_OSC3[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
-			}
-
-			PWM_TO_OSC3[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC3_LVL].getValue(), 2.f);
-		
-		//////////////////////////////////////////////////////////////
-		///////////////////////  VCO 3  //////////////////////////////
-		//////////////////////////////////////////////////////////////
-
-			PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC3[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ///////  +porta_out
-
-			oscillator3[i].step(
-				params[PW_PARAM_OSC3].getValue(),
-				PWM_TO_OSC3[i],
-				params[FINE_PARAM_OSC3].getValue(),
-				params[FREQ_PARAM_OSC3].getValue(),
-				FM_INPUT_OSC3[i],
-				PITCH_INPUT,
-				args.sampleTime);
-			// Set outputs
-			if (inputs[WAVE_CV_OSC3].isConnected())
-            {                
-                wave3[i] = params[WAVE_ATTEN_OSC3].getValue() + (inputs[WAVE_CV_OSC3].getPolyVoltage(i) / 3);
-            	wave3[i] = clamp(wave3[i], 0.f, 3.f);
-				
-				if (wave3[i] < 1.f)
-					OSC3_OUTPUT[i] = (crossfade(oscillator3[i].sine, oscillator3[i].tri, wave3[i])) * 5.f;
-				else if (wave2[i] < 2.f)
-					OSC3_OUTPUT[i] = (crossfade(oscillator3[i].tri, oscillator3[i].saw, wave3[i] - 1.f)) * 5.f;
-				else
-					OSC3_OUTPUT[i] = (crossfade(oscillator3[i].saw, oscillator3[i].square, wave3[i] - 2.f)) * 5.f;
-			}
-            else
-            {
-				SIN_OUTPUT_OSC3[i] = 5.f * oscillator3[i].sine;
-				TRI_OUTPUT_OSC3[i] = 5.f * oscillator3[i].tri;
-				//EVEN_OUTPUT_OSC3 = 5.f * oscillator3[i].even;
-				SAW_OUTPUT_OSC3[i] = 5.f * oscillator3[i].saw;
-				SQR_OUTPUT_OSC3[i] = 5.f * oscillator3[i].square;
-				if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 0)
-				{
-					OSC3_OUTPUT[i] = 5.f * oscillator3[i].sine;
-				}
-				else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 1)
-				{
-					OSC3_OUTPUT[i] = 5.f * oscillator3[i].tri;
-				}
-				else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 2)
-				{
-					OSC3_OUTPUT[i] = 5.f * oscillator3[i].saw;
-				}
-				else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 3)
-				{
-					OSC3_OUTPUT[i] = 5.f * oscillator3[i].square;
-				}
-			}
-		}
-		
-
-		////////////////////////////////////////////////////////
-		//////////////////   Ring Modulation   /////////////////
-		////////////////////////////////////////////////////////
-
-		// only run when switch is in ring mod position, AND level is >0
-		RM_ON = false;
-		if (params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue() > 0)
-		{
-			RM_ON = true;
-		}
-
-		{
-			for (int i = 0; i < channels; ++i)
-			{
-				rmod1[i].step(OSC1_OUTPUT[i], OSC2_OUTPUT[i]);
-
-				RM_MODULATED_OUTPUT[i] = rmod1[i].wd * rmod1[i].res_RM + (1.0 - rmod1[i].wd) * rmod1[i].vin;
-			}
-		}
-
-		////////////////////////////////////////////////////////
-		//////////////     Noise select     ////////////////////
-		////////////////////////////////////////////////////////
-		float white = noise.white();
-		for (int i = 0; i < channels; ++i)
-		{
-			if (params[SWITCH_PARAM_NOISE_SEL].getValue())
-			{
-				NOISE_OUT[i] = 10.0f * white;
-				NOISE_OUT[i] *= std::pow(1, 3.f);
-			}
-			else
-			{
-				pinkFilter.process(white);
-				NOISE_OUT[i] = 10.0f * clamp(0.18f * pinkFilter.pink(), -1.0f, 1.0f);
-				NOISE_OUT[i]  *= std::pow(1, 3.f);
-			}
-		}
-		///////////////////////////////////////////////////
-		//////////////    Audio inputs (4)   //////////////
-		///////////////////////////////////////////////////
-
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #0 - Noise / RM
-			if (params[SWITCH_PARAM_AUDIO + 0].getValue())
-			{
-				F_IN0[i] = NOISE_OUT[i];
-			}
-			else
-			{
-				F_IN0[i] = RM_MODULATED_OUTPUT[i];
-			}
-
-			///////////  Call Mix_Loop 4
-			AudioMix.step(F_IN0[i],
-						  OSC1_OUTPUT[i],
-						  OSC2_OUTPUT[i],
-						  OSC3_OUTPUT[i],
-						  params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue(),
-						  params[SLIDER_PARAM_TO_AUDIO_LVL + 1].getValue(),
-						  params[SLIDER_PARAM_TO_AUDIO_LVL + 2].getValue(),
-						  params[SLIDER_PARAM_TO_AUDIO_LVL + 3].getValue());
-
-			AUDIO_MIX[i] = AudioMix.output;
-			
-		}
-
-		outputs[OUTPUT_TO_EXT_VCF].setChannels(channels);
-		outputs[OUTPUT_TO_EXT_VCF].writeVoltages(AUDIO_MIX);
-
-		//////////////////////////////////////////////////////////////
-		/////////////////    Filter Inputs   (3)  ////////////////////
-		//////////////////////////////////////////////////////////////
-		for (int i = 0; i < channels; ++i)
-		{
-			///  #1 - KBRD, CV2, SH MIX to Filter
-			if (params[SWITCH_PARAM_FILTER + 0].getValue())
-			{
-				F_IN0[i] = inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i); // kb cv
-			}
-			else
-			{
-				if (inputs[IN_CV_2].isConnected()) // CV In2)
-				{
-					F_IN0[i] = inputs[IN_CV_2].getPolyVoltage(i); // CV In2
-				}
-				else
-				{
-					F_IN0[i] = SH_MIX[i];
-				}
-			}
-			///  #2 - S&H, LFO, MW to Filter
-			if (params[SWITCH_PARAM_FILTER + 1].getValue())
-			{
-				F_IN1[i] = OUTPUT_SH[i];
-			}
-			else
-			{
-				if (params[SWITCH_PARAM_LFO_MOD_VCF].getValue()) ////LFO / MW
-				{
-					F_IN1[i] = LFO_OUTPUT[i];
-				}
-				else
-				{
-					if (inputs[IN_CV_MOD].isConnected()) //PW MOD IN
+					///  #0 - Slider 1
+					if (params[SWITCH_PARAM_SH + 0].getValue())
 					{
-						F_IN1[i] = inputs[IN_CV_MOD].getPolyVoltage(i);
+						F_IN0[i] = SAW_OUTPUT_OSC1[i];
+					}
+					else
+					{
+						F_IN0[i] = SQR_OUTPUT_OSC1[i];
+					}
+
+					///  #1 - Slider 2
+					if (params[SWITCH_PARAM_SH + 1].getValue())
+					{
+						F_IN1[i] = NOISE_OUT[i];
+					}
+					else
+					{
+						F_IN1[i] = SQR_OUTPUT_OSC2[i];
+					}
+					///////////  Call Mix_Loop 2
+					S_H_Mix.step(F_IN0[i],
+								F_IN1[i],
+								params[SLIDER_PARAM_SH_LVL + 0].getValue(),
+								params[SLIDER_PARAM_SH_LVL + 1].getValue());
+
+					SH_MIX[i] = S_H_Mix.output;
+				}
+			
+			////////////////////////////////////////////////////////
+			/////////////////    Sample & Hold    //////////////////
+			//////////////////////////////////Thanks to Southpole///
+
+				for (int i = 0; i < channels; ++i)
+				{
+					if (params[SWITCH_PARAM_SH_LFO_KEY].getValue())
+					{
+						TRIGGER_SH_INPUT[i] = LFO_OUTPUT[i]; 
+					}
+					else
+					{
+						TRIGGER_SH_INPUT[i] = inputs[IN_GATE_INPUT_1].getVoltage();
+					}
+
+					if (sh_trigger[i].process(TRIGGER_SH_INPUT[i]))
+						OUT_TO_LAG[i] = SH_MIX[i];
+					//OUTPUT_SH[i] = SH_MIX[i];
+				}
+			
+				//	S/H lag
+				for (int i = 0; i < channels; ++i)
+				{
+					if (params[SLIDER_PARAM_LAG].value > 0.1f)
+					{
+
+						sh_slew[i].step(
+							OUT_TO_LAG[i],
+							params[SLIDER_PARAM_LAG].getValue(),
+							args.sampleTime);
+						OUTPUT_SH[i] = sh_slew[i].out_SLEW;
+					}
+					else
+					{
+						OUTPUT_SH[i] = OUT_TO_LAG[i];
 					}
 				}
 			}
-			///  #3 - ADSR 1 or 2 to Filter
-			if (params[SWITCH_PARAM_FILTER + 2].getValue())
+		
+			////////////////////////////////////////////////////////
+			//////////////////     Portamento     //////////////////
+			////////////////////////////////////////////////////////
+			
+			//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
+
+			if (inputs[IN_PORTA_ON_OFF].isConnected())
 			{
-				F_IN2[i] = ENVELOPE_OUTPUT_ADSR_1[i];
+				for (int i = 0; i < channels; ++i)
+				{
+					if (params[PARAM_PORTA].getValue() > 0 && inputs[IN_PORTA_ON_OFF].getPolyVoltage(i) > 0)
+					{
+						porta_slew[i].step(inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i), params[PARAM_PORTA].getValue(), args.sampleTime);
+						PORTA_OUT[i] = porta_slew[i].out_SLEW;
+					}
+					else
+					{
+						PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
+					}
+				}	
 			}
 			else
 			{
-				F_IN2[i] = ENVELOPE_OUTPUT_ADSR_2[i];
+				for (int i = 0; i < channels; ++i)
+				{
+					if (params[PARAM_PORTA].getValue() > 0)
+					{
+						porta_slew[i].step(inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i), params[PARAM_PORTA].getValue(), args.sampleTime);
+						PORTA_OUT[i] = porta_slew[i].out_SLEW;
+					}
+					else
+					{
+						PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
+					}
+				}
 			}
-			///////////  Call Mix_Loop 3
-			FilterMix.step(F_IN0[i],
-						   F_IN1[i],
-						   F_IN2[i],
-						   params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue(),
-						   params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue(),
-						   params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue());
-
-			FILTER_MIX[i] = FilterMix.output;
-		}
-		////////////////////////////////////////////////////////
-		////////////////////////   VCF   ///////////////////////
-		////////////////////////////////////////////////////////
-
-		for (int i = 0; i < channels; ++i)
-		{
-			FREQ_INPUT_VCF[i] = FILTER_MIX[i];
-		}
-
-		outputs[OUT_FILTER_MIX_OUTPUT].setChannels(channels);
-		outputs[OUT_FILTER_MIX_OUTPUT].writeVoltages(FILTER_MIX);
-
-		//for (int i = 0; i < channels; ++i)
-		//{
 			
-			//	VCF_INPUT[i] = AUDIO_MIX[i];
-			//clamp(AUDIO_MIX[i], 0.f, 10.f);
-		//}
+			////////////////////////////////////////////////////////
+			//////////////////////     LFO     /////////////////////
+			////////////////////////////////////////////////////////
+			float freqParam = params[FREQ_PARAM_LFO].getValue();
+			float waveParam = params[WAVE_ATTEN_LFO].getValue();
+			float fmParam = params[LFO_FM_PARAM].getValue();
 
-		if (outputs[OUT_FREQ_PARAM_VCF].isConnected())
-		{
-			outputs[OUT_FREQ_PARAM_VCF].value = params[FREQ_PARAM_VCF].getValue() * 10;
-		}
-		if (outputs[OUT_RES_PARAM_VCF].isConnected())
-		{
-			outputs[OUT_RES_PARAM_VCF].value = params[RES_PARAM_VCF].getValue() * 10;
-		}
-		if (outputs[OUT_DRIVE_PARAM_VCF].isConnected())
-		{
-			outputs[OUT_DRIVE_PARAM_VCF].value = params[DRIVE_PARAM_VCF].getValue() * 10;
-		}
+			for (int c = 0; c < channels; c += 4) 
+			{
+				auto *oscillator = &oscillators[c / 4];
+				float_4 pitch = freqParam;
+				// FM, polyphonic
+				pitch += float_4::load(inputs[IN_CV_LFO].getVoltages(c)) * fmParam;
+				oscillator->setPitch(pitch);
 
-		
-		if (!inputs[INPUT_EXT_VCF].isConnected())
-		{
+				// Wave
+				float_4 wave = waveParam;
+				inputs[WAVE_CV_LFO].getVoltage();
+				if (inputs[WAVE_CV_LFO].getChannels() == 1)
+					wave += inputs[WAVE_CV_LFO].getVoltage() / 10.f * 3.f;
+				else
+					wave += float_4::load(inputs[WAVE_CV_LFO].getVoltages(c)) / 10.f * 3.f;
+				wave = clamp(wave, 0.f, 3.f);
+
+				// Settings
+				//oscillator->invert = (params[INVERT_PARAM].getValue() == 0.f);
+				//oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
+				oscillator->step(args.sampleTime);
+				//	oscillator->setReset(inputs[IN_TRIGGER_INPUT_1].getVoltages(c));
+				
+				// Outputs
+				if (inputs[WAVE_CV_LFO].isConnected()) 
+				{
+					//outputs[OUT_OUTPUT_1].setChannels(channels);
+					float_4 v = 0.f;
+					v += oscillator->sin() * simd::fmax(0.f, 1.f - simd::fabs(wave - 0.f));
+					v += oscillator->tri() * simd::fmax(0.f, 1.f - simd::fabs(wave - 1.f));
+					v += oscillator->saw() * simd::fmax(0.f, 1.f - simd::fabs(wave - 2.f));
+					v += oscillator->sqr() * simd::fmax(0.f, 1.f - simd::fabs(wave - 3.f));
+					v *= 5.f;
+					//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+					v.store(LFO_OUTPUT);
+				}
+				else
+				{
+					if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0) {
+						//outputs[OUT_OUTPUT_1].setChannels(channels);
+						float_4 v = 5.f * oscillator->sin();
+						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+						v.store(LFO_OUTPUT);
+					}
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1) {
+						//outputs[OUT_OUTPUT_1].setChannels(channels);
+						float_4 v = 5.f * oscillator->tri();
+						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+						v.store(LFO_OUTPUT);
+					}
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2) {
+						//outputs[OUT_OUTPUT_1].setChannels(channels);
+						float_4 v = 5.f * oscillator->saw();
+						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+						v.store(LFO_OUTPUT);
+					}
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3) {
+						//outputs[OUT_OUTPUT_1].setChannels(channels);
+						float_4 v = 5.f * oscillator->sqr();
+						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
+						v.store(LFO_OUTPUT);
+					}
+				}
+				
+			}
+			
+			// Light
+			if (lightDividerLFO.process()) {
+				if (channels == 1) {
+					float lightValue = oscillators[0].light().s[0];
+					lights[PHASE_LIGHT + 0].setSmoothBrightness(-lightValue, args.sampleTime * lightDivider.getDivision());
+					lights[PHASE_LIGHT + 1].setSmoothBrightness(lightValue, args.sampleTime * lightDivider.getDivision());
+					lights[PHASE_LIGHT + 2].setBrightness(0.f);
+				}
+				else {
+					lights[PHASE_LIGHT + 0].setBrightness(0.f);
+					lights[PHASE_LIGHT + 1].setBrightness(0.f);
+					lights[PHASE_LIGHT + 2].setBrightness(1.f);
+				}
+			}
+
+
+			//channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
+			////////////////////////////////////////////////////////
+			//////////////    FM IN OSC1         ///////////////////
+			////////////////////////////////////////////////////////
+			
 			for (int i = 0; i < channels; ++i)
 			{
-				Finput[i] = (AUDIO_MIX[i] / 5.f);
-				//float drive = clamp(params[DRIVE_PARAM_VCF].getValue() + DRIVE_INPUT_VCF / 10.f, 0.f, 1.f);
-				float drive = params[DRIVE_PARAM_VCF].getValue();
-				float gain = std::pow(1.f + drive, 5);
-				Finput[i] *= gain;
+				if (params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue() > 0.1f )
+				{
+					///  #1 - MW, LFO,  ADSR to VCO
+					if (params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && !inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = SH_MIX[i]; //SH Mix
+					}
+					else if (params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
+					}
+					else if (!params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC1].getValue() && inputs[IN_CV_MOD].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+					}
+					else
+					{
+						F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+					}
 
-				// Add -60dB noise to bootstrap self-oscillation
-				Finput[i] += 1e-6f * (2.f * random::uniform() - 1.f);
+					///  #2 - S&H & ADSR12 to Filter
+					if (params[SWITCH_PARAM_FM_OSC1 + 1].getValue())
+					{
+						F_IN1[i] = OUTPUT_SH[i]; // S&H
+					}
+					else
+					{
+						F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
+					}
 
-				// Set resonance
-				float res = params[RES_PARAM_VCF].getValue();
-				filter[i].resonance = std::pow(res, 2) * 10.f;
+					///////////  Call Mix_Loop 2
+					FM_1_Mix.step(F_IN0[i],
+								F_IN1[i],
+								params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue(),
+								params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue());
 
-				// Set cutoff frequency
-				float pitch = 0.f;
-				pitch += FREQ_INPUT_VCF[i] * dsp::quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
-				//pitch += FREQ_INPUT_VCF * quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
-				pitch += params[FREQ_PARAM_VCF].getValue() * 10.f - 5.f;
-				//pitch += quadraticBipolar(params[FINE_PARAM_VCF].getValue() * 2.f - 1.f) * 7.f / 12.f;
-				float cutoff = 261.626f * std::pow(2.f, pitch);
-				cutoff = clamp(cutoff, 1.f, 8000.f);
-				filter[i].setCutoff(cutoff);
+					FM_INPUT_OSC1[i] = FM_1_Mix.output;
+					//FM_INPUT_OSC1[i] = clamp(FM_INPUT_OSC1[i], 0.f, 10.f);
+				}
+				////////////////////////////////////////////////////////
+				///////////////   PWM IN To OSC1 1 (1)   ///////////////
+				////////////////////////////////////////////////////////
+			
+				///  #1 - MW, LFO,  ADSR to VCO
+				if (params[SWITCH_PARAM_PWM_OSC1].getValue())
+				{
+					PWM_TO_OSC1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
+				}
+				else if (!params[SWITCH_PARAM_PWM_OSC1].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC1].getValue() && inputs[IN_CV_MOD].isConnected())
+				{
+					PWM_TO_OSC1[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+				}
+				else
+				{
+					PWM_TO_OSC1[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+				}
 
-				filter[i].process(Finput[i], args.sampleTime);
-				LPF_OUTPUT_VCF[i] = 5.f * filter[i].lowpass;
-				IN_HPF[i] = LPF_OUTPUT_VCF[i];
+				PWM_TO_OSC1[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC1_LVL].getValue(), 2.f);
+			
+				//////////////////////////////////////////////////////////////
+				/////////////////////  VCO 1   ///////////////////////////////
+				//////////////////////////////////////////////////////////////
+
+				PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC1[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ////////  +porta_out
+
+				oscillator1[i].step(
+					params[PW_PARAM_OSC1].getValue(),
+					PWM_TO_OSC1[i],
+					params[FINE_PARAM_OSC1].getValue(),
+					params[FREQ_PARAM_OSC1].getValue(),
+					FM_INPUT_OSC1[i],
+					PITCH_INPUT,
+					args.sampleTime);
+				// Set outputs
+
+				
+				
+				
+				if (inputs[WAVE_CV_OSC1].isConnected())
+				{                
+					wave[i] = params[WAVE_ATTEN_OSC1].getValue() + (inputs[WAVE_CV_OSC1].getPolyVoltage(i) / 3);
+					wave[i] = clamp(wave[i], 0.f, 3.f);
+					
+					if (wave[i] < 1.f)
+						OSC1_OUTPUT[i] = (crossfade(oscillator1[i].sine, oscillator1[i].tri, wave[i])) * 5.f;
+					else if (wave[i] < 2.f)
+						OSC1_OUTPUT[i] = (crossfade(oscillator1[i].tri, oscillator1[i].saw, wave[i] - 1.f)) * 5.f;
+					else
+						OSC1_OUTPUT[i] = (crossfade(oscillator1[i].saw, oscillator1[i].square, wave[i] - 2.f)) * 5.f;
+				}
+				else
+				{
+					SIN_OUTPUT_OSC1[i] = 5.f * oscillator1[i].sine;
+					TRI_OUTPUT_OSC1[i] = 5.f * oscillator1[i].tri;
+					//EVEN_OUTPUT_OSC1 = 5.f * oscillator1[i].even;
+					SAW_OUTPUT_OSC1[i] = 5.f * oscillator1[i].saw;
+					SQR_OUTPUT_OSC1[i] = 5.f * oscillator1[i].square;
+					if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 0)
+					{
+						OSC1_OUTPUT[i] = 5.f * oscillator1[i].sine;
+					}
+					else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 1)
+					{
+						OSC1_OUTPUT[i] = 5.f * oscillator1[i].tri;
+					}
+					else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 2)
+					{
+						OSC1_OUTPUT[i] = 5.f * oscillator1[i].saw;
+					}
+					else if (params[SWITCH_PARAM_OSC1_TYPE].getValue() == 3)
+					{
+						OSC1_OUTPUT[i] = 5.f * oscillator1[i].square;
+					}
+				}
 			}
-		}
-		else 
-		{
+
+			////////////////////////////////////////////////////////
+			///////////////    FM IN OSC2    ///////////////////
+			////////////////////////////////////////////////////////
 			for (int i = 0; i < channels; ++i)
 			{
-				IN_HPF[i] = inputs[INPUT_EXT_VCF].getPolyVoltage(i) / 5.0f; // Ext filter in to HP filter
-				//inputs[INPUT_EXT_VCF].getVoltages(IN_HPF);
+				if (params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue() > 0.1f )
+				{
+					///  #1 - MW, LFO,  ADSR to VCO
+					if (params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && !inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = SH_MIX[i]; //SH Mix
+					}
+					else if (params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
+					}
+					else if (!params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC2].getValue() && inputs[IN_CV_MOD].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+					}
+					else
+					{
+						F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+					}
+
+					///  #2 - S&H & ADSR12 to Filter
+					if (params[SWITCH_PARAM_FM_OSC2 + 1].getValue())
+					{
+						F_IN1[i] = OUTPUT_SH[i]; // S&H
+					}
+					else
+					{
+						F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
+					}
+
+					///////////  Call Mix_Loop 2
+					FM_2_Mix.step(F_IN0[i],
+								F_IN1[i],
+								params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue(),
+								params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue());
+
+					FM_INPUT_OSC2[i] = FM_2_Mix.output;
+
+					//FM_INPUT_OSC2[i] = clamp(FM_INPUT_OSC2[i], 0.f, 10.f);
+				}
+				////////////////////////////////////////////////////////
+				///////////////   PWM IN To OSC2        ///////////////
+				////////////////////////////////////////////////////////
+			
+				///  #1 - MW, LFO,  ADSR to VCO
+				if (params[SWITCH_PARAM_PWM_OSC2].getValue())
+				{
+					PWM_TO_OSC2[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
+				}
+				else if (!params[SWITCH_PARAM_PWM_OSC2].getValue() && !params[SWITCH_PARAM_LFO_MOD_VCF].getValue() && inputs[IN_CV_MOD].isConnected())
+				{
+					PWM_TO_OSC2[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+				}
+				else
+				{
+					PWM_TO_OSC2[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+				}
+
+				PWM_TO_OSC2[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC2_LVL].getValue(), 2.f);
+			
+				//////////////////////////////////////////////////////////////
+				/////////////////////  VCO 2 /////////////////////////////////
+				//////////////////////////////////////////////////////////////
+
+				PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC2[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ///+porta_out
+
+				oscillator2[i].step(
+					params[PW_PARAM_OSC2].getValue(),
+					PWM_TO_OSC2[i],
+					params[FINE_PARAM_OSC2].getValue(),
+					params[FREQ_PARAM_OSC2].getValue(),
+					FM_INPUT_OSC2[i],
+					PITCH_INPUT,
+					args.sampleTime);
+				// Set outputs
+
+				if (inputs[WAVE_CV_OSC2].isConnected())
+				{                
+					wave2[i] = params[WAVE_ATTEN_OSC2].getValue() + (inputs[WAVE_CV_OSC2].getPolyVoltage(i) / 3);
+					wave2[i] = clamp(wave2[i], 0.f, 3.f);
+					
+					if (wave2[i] < 1.f)
+						OSC2_OUTPUT[i] = (crossfade(oscillator2[i].sine, oscillator2[i].tri, wave2[i])) * 5.f;
+					else if (wave2[i] < 2.f)
+						OSC2_OUTPUT[i] = (crossfade(oscillator2[i].tri, oscillator2[i].saw, wave2[i] - 1.f)) * 5.f;
+					else
+						OSC2_OUTPUT[i] = (crossfade(oscillator2[i].saw, oscillator2[i].square, wave2[i] - 2.f)) * 5.f;
+				}
+				else
+				{
+					SIN_OUTPUT_OSC2[i] = 5.f * oscillator2[i].sine;
+					TRI_OUTPUT_OSC2[i] = 5.f * oscillator2[i].tri;
+					//EVEN_OUTPUT_OSC2 = 5.f * oscillator2[i].even;
+					SAW_OUTPUT_OSC2[i] = 5.f * oscillator2[i].saw;
+					SQR_OUTPUT_OSC2[i] = 5.f * oscillator2[i].square;
+					if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 0)
+					{
+						OSC2_OUTPUT[i] = 5.f * oscillator2[i].sine;
+					}
+					else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 1)
+					{
+						OSC2_OUTPUT[i] = 5.f * oscillator2[i].tri;
+					}
+					else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 2)
+					{
+						OSC2_OUTPUT[i] = 5.f * oscillator2[i].saw;
+					}
+					else if (params[SWITCH_PARAM_OSC2_TYPE].getValue() == 3)
+					{
+						OSC2_OUTPUT[i] = 5.f * oscillator2[i].square;
+					}
+				}
 			}
-		}
-		
-		
-		//////////////////////////////////////////////////
-		//////////////////   HPF     /////////////////////
-		/////////     Bidoo Perco       //////////////////
-		//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
-		
-		for (int i = 0; i < channels; ++i)
-		{
-			//IN_CV_HPF_CUTOFF
-			//params[CMOD_PARAM].getValue() = 0.5f;
-			//params[Q_PARAM].getValue() = 0.0f;
-			HPF_Q_PARAM = 0.0f;
-			//CUTOFF_INPUT_HPF = 0.0f;
-			float cfreq = pow(2.0f, rescale(clamp(params[HPF_FILTER_FREQ].getValue() + params[HPF_FMOD_PARAM].getValue() * inputs[IN_CV_HPF_CUTOFF].getVoltage() / 5.0f, 0.0f, 1.0f), 0.0f, 1.0f, 4.5f, 13.0f));
-			float q = 10.0f * clamp(0.f + HPF_Q_PARAM * 0.2f, 0.1f, 1.0f);
-			hpfFilter[i].setParams(cfreq, q, args.sampleRate);
+
+			////////////////////////////////////////////////////////
+			//////////////    FM IN OSC3        ////////////////////
+			////////////////////////////////////////////////////////
+			for (int i = 0; i < channels; ++i)
+			{
+				if (params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue() > 0.1f )
+				{
+					///  #1 - MW, LFO,  ADSR to VCO
+					if (params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && !inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = SH_MIX[i]; //SH Mix
+					}
+					else if (params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && inputs[IN_CV_1].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_1].getPolyVoltage(i); //CV_IN_1
+					}
+					else if (!params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && !params[SWITCH_PARAM_LFO_MOD_FM_OSC3].getValue() && inputs[IN_CV_MOD].isConnected())
+					{
+						F_IN0[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+					}
+					else
+					{
+						F_IN0[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+					}
+
+					///  #2 - S&H & ADSR12 to Filter
+					if (params[SWITCH_PARAM_FM_OSC3 + 1].getValue())
+					{
+						F_IN1[i] = OUTPUT_SH[i]; // S&H
+					}
+					else
+					{
+						F_IN1[i] = ENVELOPE_OUTPUT_ADSR_1[i]; // ADSR 1
+					}
+
+					///////////  Call Mix_Loop 3
+					FM_3_Mix.step(F_IN0[i],
+								F_IN1[i],
+								params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue(),
+								params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue());
+					FM_INPUT_OSC3[i] = FM_3_Mix.output;
+
+					//FM_INPUT_OSC3[i] = clamp(FM_INPUT_OSC3[i], 0.f, 10.f);
+				}
+			////////////////////////////////////////////////////////
+			///////////////   PWM IN To OSC3 1 (1)   ///////////////
+			////////////////////////////////////////////////////////
+			
+				///  #1 - MW, LFO,  ADSR to VCO
+				if (params[SWITCH_PARAM_PWM_OSC3].getValue())
+				{
+					PWM_TO_OSC3[i] = ENVELOPE_OUTPUT_ADSR_1[i]; //ENVELOPE_OUTPUT_ADSR_1
+				}
+				else if (!params[SWITCH_PARAM_PWM_OSC3].getValue() && !params[SWITCH_PARAM_LFO_MOD_VCF].getValue() && inputs[IN_CV_MOD].isConnected())
+				{
+					PWM_TO_OSC3[i] = inputs[IN_CV_MOD].getPolyVoltage(i); //Mod Wheel
+				}
+				else
+				{
+					PWM_TO_OSC3[i] = LFO_OUTPUT[i]; //   LFO_OUTPUT
+				}
+
+				PWM_TO_OSC3[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC3_LVL].getValue(), 2.f);
+			
+			//////////////////////////////////////////////////////////////
+			///////////////////////  VCO 3  //////////////////////////////
+			//////////////////////////////////////////////////////////////
+
+				PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC3[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ///////  +porta_out
+
+				oscillator3[i].step(
+					params[PW_PARAM_OSC3].getValue(),
+					PWM_TO_OSC3[i],
+					params[FINE_PARAM_OSC3].getValue(),
+					params[FREQ_PARAM_OSC3].getValue(),
+					FM_INPUT_OSC3[i],
+					PITCH_INPUT,
+					args.sampleTime);
+				// Set outputs
+				if (inputs[WAVE_CV_OSC3].isConnected())
+				{                
+					wave3[i] = params[WAVE_ATTEN_OSC3].getValue() + (inputs[WAVE_CV_OSC3].getPolyVoltage(i) / 3);
+					wave3[i] = clamp(wave3[i], 0.f, 3.f);
+					
+					if (wave3[i] < 1.f)
+						OSC3_OUTPUT[i] = (crossfade(oscillator3[i].sine, oscillator3[i].tri, wave3[i])) * 5.f;
+					else if (wave2[i] < 2.f)
+						OSC3_OUTPUT[i] = (crossfade(oscillator3[i].tri, oscillator3[i].saw, wave3[i] - 1.f)) * 5.f;
+					else
+						OSC3_OUTPUT[i] = (crossfade(oscillator3[i].saw, oscillator3[i].square, wave3[i] - 2.f)) * 5.f;
+				}
+				else
+				{
+					SIN_OUTPUT_OSC3[i] = 5.f * oscillator3[i].sine;
+					TRI_OUTPUT_OSC3[i] = 5.f * oscillator3[i].tri;
+					//EVEN_OUTPUT_OSC3 = 5.f * oscillator3[i].even;
+					SAW_OUTPUT_OSC3[i] = 5.f * oscillator3[i].saw;
+					SQR_OUTPUT_OSC3[i] = 5.f * oscillator3[i].square;
+					if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 0)
+					{
+						OSC3_OUTPUT[i] = 5.f * oscillator3[i].sine;
+					}
+					else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 1)
+					{
+						OSC3_OUTPUT[i] = 5.f * oscillator3[i].tri;
+					}
+					else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 2)
+					{
+						OSC3_OUTPUT[i] = 5.f * oscillator3[i].saw;
+					}
+					else if (params[SWITCH_PARAM_OSC3_TYPE].getValue() == 3)
+					{
+						OSC3_OUTPUT[i] = 5.f * oscillator3[i].square;
+					}
+				}
+			}
+			
+
+			////////////////////////////////////////////////////////
+			//////////////////   Ring Modulation   /////////////////
+			////////////////////////////////////////////////////////
+
+			// only run when switch is in ring mod position, AND level is >0
+			RM_ON = false;
+			if (params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue() > 0.1f)
+			{
+				RM_ON = true;
+			}
+
+			{
+				for (int i = 0; i < channels; ++i)
+				{
+					rmod1[i].step(OSC1_OUTPUT[i], OSC2_OUTPUT[i]);
+
+					RM_MODULATED_OUTPUT[i] = rmod1[i].wd * rmod1[i].res_RM + (1.0 - rmod1[i].wd) * rmod1[i].vin;
+				}
+			}
+
+			////////////////////////////////////////////////////////
+			//////////////     Noise select     ////////////////////
+			////////////////////////////////////////////////////////
+			float white = noise.white();
+			for (int i = 0; i < channels; ++i)
+			{
+				if (params[SWITCH_PARAM_NOISE_SEL].getValue())
+				{
+					NOISE_OUT[i] = 10.0f * white;
+					NOISE_OUT[i] *= std::pow(1, 3.f);
+				}
+				else
+				{
+					pinkFilter.process(white);
+					NOISE_OUT[i] = 10.0f * clamp(0.18f * pinkFilter.pink(), -1.0f, 1.0f);
+					NOISE_OUT[i]  *= std::pow(1, 3.f);
+				}
+			}
+			///////////////////////////////////////////////////
+			//////////////    Audio inputs (4)   //////////////
+			///////////////////////////////////////////////////
+
+			for (int i = 0; i < channels; ++i)
+			{
+				///  #0 - Noise / RM
+				if (params[SWITCH_PARAM_AUDIO + 0].getValue())
+				{
+					F_IN0[i] = NOISE_OUT[i];
+				}
+				else
+				{
+					F_IN0[i] = RM_MODULATED_OUTPUT[i];
+				}
+
+				///////////  Call Mix_Loop 4
+				AudioMix.step(F_IN0[i],
+							OSC1_OUTPUT[i],
+							OSC2_OUTPUT[i],
+							OSC3_OUTPUT[i],
+							params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue(),
+							params[SLIDER_PARAM_TO_AUDIO_LVL + 1].getValue(),
+							params[SLIDER_PARAM_TO_AUDIO_LVL + 2].getValue(),
+							params[SLIDER_PARAM_TO_AUDIO_LVL + 3].getValue());
+
+				AUDIO_MIX[i] = AudioMix.output;
+				
+			}
+
+			outputs[OUTPUT_TO_EXT_VCF].setChannels(channels);
+			outputs[OUTPUT_TO_EXT_VCF].writeVoltages(AUDIO_MIX);
+
+			//////////////////////////////////////////////////////////////
+			/////////////////    Filter Inputs   (3)  ////////////////////
+			//////////////////////////////////////////////////////////////
+			if ( params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue() > 0.1f)
+			{
+				for (int i = 0; i < channels; ++i)
+				{
+					///  #1 - KBRD, CV2, SH MIX to Filter
+					if (params[SWITCH_PARAM_FILTER + 0].getValue())
+					{
+						F_IN0[i] = inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i); // kb cv
+					}
+					else
+					{
+						if (inputs[IN_CV_2].isConnected()) // CV In2)
+						{
+							F_IN0[i] = inputs[IN_CV_2].getPolyVoltage(i); // CV In2
+						}
+						else
+						{
+							F_IN0[i] = SH_MIX[i];
+						}
+					}
+					///  #2 - S&H, LFO, MW to Filter
+					if (params[SWITCH_PARAM_FILTER + 1].getValue())
+					{
+						F_IN1[i] = OUTPUT_SH[i];
+					}
+					else
+					{
+						if (params[SWITCH_PARAM_LFO_MOD_VCF].getValue()) ////LFO / MW
+						{
+							F_IN1[i] = LFO_OUTPUT[i];
+						}
+						else
+						{
+							if (inputs[IN_CV_MOD].isConnected()) //PW MOD IN
+							{
+								F_IN1[i] = inputs[IN_CV_MOD].getPolyVoltage(i);
+							}
+						}
+					}
+					///  #3 - ADSR 1 or 2 to Filter
+					if (params[SWITCH_PARAM_FILTER + 2].getValue())
+					{
+						F_IN2[i] = ENVELOPE_OUTPUT_ADSR_1[i];
+					}
+					else
+					{
+						F_IN2[i] = ENVELOPE_OUTPUT_ADSR_2[i];
+					}
+					///////////  Call Mix_Loop 3
+					FilterMix.step(F_IN0[i],
+								F_IN1[i],
+								F_IN2[i],
+								params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue(),
+								params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue(),
+								params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue());
+
+					FILTER_MIX[i] = FilterMix.output;
+				}
+			}
+			////////////////////////////////////////////////////////
+			////////////////////////   VCF   ///////////////////////
+			////////////////////////////////////////////////////////
+
+			for (int i = 0; i < channels; ++i)
+			{
+				FREQ_INPUT_VCF[i] = FILTER_MIX[i];
+			}
+
+			outputs[OUT_FILTER_MIX_OUTPUT].setChannels(channels);
+			outputs[OUT_FILTER_MIX_OUTPUT].writeVoltages(FILTER_MIX);
+
+			//for (int i = 0; i < channels; ++i)
+			//{
+				
+				//	VCF_INPUT[i] = AUDIO_MIX[i];
+				//clamp(AUDIO_MIX[i], 0.f, 10.f);
+			//}
+
+			if (outputs[OUT_FREQ_PARAM_VCF].isConnected())
+			{
+				outputs[OUT_FREQ_PARAM_VCF].value = params[FREQ_PARAM_VCF].getValue() * 10;
+			}
+			if (outputs[OUT_RES_PARAM_VCF].isConnected())
+			{
+				outputs[OUT_RES_PARAM_VCF].value = params[RES_PARAM_VCF].getValue() * 10;
+			}
+			if (outputs[OUT_DRIVE_PARAM_VCF].isConnected())
+			{
+				outputs[OUT_DRIVE_PARAM_VCF].value = params[DRIVE_PARAM_VCF].getValue() * 10;
+			}
+
+			
 			if (!inputs[INPUT_EXT_VCF].isConnected())
 			{
-				HPFin[i] = IN_HPF[i] * 0.3f; //normalise to -1/+1 we consider VCV Rack standard is #+5/-5V on VCO1
-				//filtering
-				hpfFilter[i].calcOutput(HPFin[i]);
-			}
-			else
-			{
-				HPFin[i] =inputs[INPUT_EXT_VCF].getVoltage(i);
-				hpfFilter[i].calcOutput(HPFin[i]);
-			}
-			OUT_HP[i] = hpfFilter[i].hp * 5.0f;
-		}
-		//outputs[OUT_OUTPUT_1].setChannels(channels);
-		//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
-		////////////////////////////////////////////////////////
-		///////////////  ADSR TO VCA slider  ///////////////////
-		////////////////////////////////////////////////////////
+				for (int i = 0; i < channels; ++i)
+				{
+					Finput[i] = (AUDIO_MIX[i] / 5.f);
+					//float drive = clamp(params[DRIVE_PARAM_VCF].getValue() + DRIVE_INPUT_VCF / 10.f, 0.f, 1.f);
+					float drive = params[DRIVE_PARAM_VCF].getValue();
+					float gain = std::pow(1.f + drive, 5);
+					Finput[i] *= gain;
 
-		
-		for (int i = 0; i < channels; ++i)
-		{
-			if (params[SWITCH_PARAM_AR_ADSR].getValue())
-			{
-				OUT_OUTPUT_AR_ADSR[i] = ENVELOPE_OUTPUT_ADSR_2[i];
-			}
-			else
-			{
-				OUT_OUTPUT_AR_ADSR[i] = ENVELOPE_OUTPUT_ADSR_1[i];
-			}
+					// Add -60dB noise to bootstrap self-oscillation
+					Finput[i] += 1e-6f * (2.f * random::uniform() - 1.f);
 
-			OUT_OUTPUT_AR_ADSR[i] *= std::pow(params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), 2.f);
+					// Set resonance
+					float res = params[RES_PARAM_VCF].getValue();
+					filter[i].resonance = std::pow(res, 2) * 10.f;
+
+					// Set cutoff frequency
+					float pitch = 0.f;
+					pitch += FREQ_INPUT_VCF[i] * dsp::quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
+					//pitch += FREQ_INPUT_VCF * quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
+					pitch += params[FREQ_PARAM_VCF].getValue() * 10.f - 5.f;
+					//pitch += quadraticBipolar(params[FINE_PARAM_VCF].getValue() * 2.f - 1.f) * 7.f / 12.f;
+					float cutoff = 261.626f * std::pow(2.f, pitch);
+					cutoff = clamp(cutoff, 1.f, 8000.f);
+					filter[i].setCutoff(cutoff);
+
+					filter[i].process(Finput[i], args.sampleTime);
+					LPF_OUTPUT_VCF[i] = 5.f * filter[i].lowpass;
+					IN_HPF[i] = LPF_OUTPUT_VCF[i];
+				}
+			}
+			else 
+			{
+				for (int i = 0; i < channels; ++i)
+				{
+					IN_HPF[i] = inputs[INPUT_EXT_VCF].getPolyVoltage(i) / 5.0f; // Ext filter in to HP filter
+					//inputs[INPUT_EXT_VCF].getVoltages(IN_HPF);
+				}
+			}
 			
-		}
+			
+			//////////////////////////////////////////////////
+			//////////////////   HPF     /////////////////////
+			/////////     Bidoo Perco       //////////////////
+			//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
+			
+			for (int i = 0; i < channels; ++i)
+			{
+				//IN_CV_HPF_CUTOFF
+				//params[CMOD_PARAM].getValue() = 0.5f;
+				//params[Q_PARAM].getValue() = 0.0f;
+				HPF_Q_PARAM = 0.0f;
+				//CUTOFF_INPUT_HPF = 0.0f;
+				float cfreq = pow(2.0f, rescale(clamp(params[HPF_FILTER_FREQ].getValue() + params[HPF_FMOD_PARAM].getValue() * inputs[IN_CV_HPF_CUTOFF].getVoltage() / 5.0f, 0.0f, 1.0f), 0.0f, 1.0f, 4.5f, 13.0f));
+				float q = 10.0f * clamp(0.f + HPF_Q_PARAM * 0.2f, 0.1f, 1.0f);
+				hpfFilter[i].setParams(cfreq, q, args.sampleRate);
+				if (!inputs[INPUT_EXT_VCF].isConnected())
+				{
+					HPFin[i] = IN_HPF[i] * 0.3f; //normalise to -1/+1 we consider VCV Rack standard is #+5/-5V on VCO1
+					//filtering
+					hpfFilter[i].calcOutput(HPFin[i]);
+				}
+				else
+				{
+					HPFin[i] =inputs[INPUT_EXT_VCF].getVoltage(i);
+					hpfFilter[i].calcOutput(HPFin[i]);
+				}
+				OUT_HP[i] = hpfFilter[i].hp * 5.0f;
+			}
+			//outputs[OUT_OUTPUT_1].setChannels(channels);
+			//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
+			////////////////////////////////////////////////////////
+			///////////////  ADSR TO VCA slider  ///////////////////
+			////////////////////////////////////////////////////////
+			
+			for (int i = 0; i < channels; ++i)
+			{
+				if (params[SWITCH_PARAM_AR_ADSR].getValue())
+				{
+					OUT_OUTPUT_AR_ADSR[i] = ENVELOPE_OUTPUT_ADSR_2[i];
+				}
+				else
+				{
+					OUT_OUTPUT_AR_ADSR[i] = ENVELOPE_OUTPUT_ADSR_1[i];
+				}
 
-		
-		
-		
+				OUT_OUTPUT_AR_ADSR[i] *= std::pow(params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), 2.f);
+			}
+		}
 	}
 };
 //void Odyssey::onReset() {
