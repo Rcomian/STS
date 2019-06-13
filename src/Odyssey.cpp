@@ -22,8 +22,6 @@
 using namespace std;
 using namespace rack;
 
-//  #define MAX_POLY_CHANNELS = 16  moved to .hpp
-
 struct Mix_Loop2
 {
 	///  vars
