@@ -1,9 +1,9 @@
 
-Works when compiled with latest (june 11th AM) pull of VCV rack.  Cann not guarentee with anything previous to that.
+Final V1 candidate..
 
 Here is the V1 list so far. Documentation to follow.....
 
-Oddy : Full polyphonic synth (formally Oddyssey, kept slug nale for compatibility. Has grown to the point that it does not really resemble an Oddysy any more.
+Oddy : Full polyphonic synth (formally Oddyssey, kept slug name the same for compatibility. Has grown to the point that it does not really resemble an Oddysey any more.
 
 Illiad: V1 Compatible, no changes.
 
@@ -17,7 +17,7 @@ Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
 
 VCV Rack modules for V6.2.
 
-Illiad ( I couldn't cal it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
+Illiad ( I couldn't call it the Oddysey) is a Synth Controller modeled after the ARP Odyssey. It is not a synth. Once you set up your synth using any of the sliders or switches to control any module CV inputs any way you like it, you can zoom in on the Illiad, and use your synth to your hearts content without trying to remember where the controls are in the mass of modules and wires. I made this for personal use, and figured it would be great for others to use live, and for jamming.
 
 The Illiad has 3 'Homage to the Odyssey' skins if you right click
 
@@ -48,10 +48,6 @@ The Octave switch, 2 octaves up, and 2 octave down from center.
 The Portamento Slider,
 
 The Pitch Bend knob, 0 to 2 Volts
-
-2 -> 1 x 11 Switch:
-
-The 2 -> 1 x 11 Switch in a VC controled version of Southpole's Manual Switch, 'Abr'. 11 switches so 2 of them covers the 22 switches on Illiad. Bottom position A, Top switch position a B.
 
 Hope you have as much fun using these as I had writing them.
 
