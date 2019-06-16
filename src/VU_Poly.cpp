@@ -75,33 +75,47 @@ struct VU_Poly : Module
 
 	void process(const ProcessArgs &args) override
 	{
-		float in[MAX_POLY_CHANNELS] = {};
-		int channels = inputs[POLY_INPUT].getChannels();
-		
-		if (vuDivider.process())
+		if (inputs[POLY_INPUT].isConnected())
 		{
-
-			for (int c = 0; c < 16; c++)
+			float in[MAX_POLY_CHANNELS] = {};
+			int channels = inputs[POLY_INPUT].getChannels();
+			
+			if (vuDivider.process())
 			{
-				in[c] = inputs[POLY_INPUT].getPolyVoltage(c);
+				for (int c = 0; c < channels; c++)
+				{
+					in[c] = inputs[POLY_INPUT].getPolyVoltage(c);
 
-				vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), in[c] / 10.f);
-				// Set channel lights infrequently
-				//if (lightDivider.process()) 
-				//{
-					//in[c] = inputs[POLY_INPUT].getPolyVoltage(c);	
-					bool active = (c < inputs[POLY_INPUT].getChannels());
+					vuMeter[c].process(args.sampleTime* vuDivider.getDivision(), in[c] / 10.f);
+					// Set channel lights infrequently
+					//if (lightDivider.process()) 
+					//{
+						//in[c] = inputs[POLY_INPUT].getPolyVoltage(c);	
+						bool active = (c < channels);
 
-					lights[CHANNEL_LIGHTS + c].setBrightness(active);
+						lights[CHANNEL_LIGHTS + c].setBrightness(active);
 
-					lights[VU_LIGHTS + 0+ (VU_LEVELS * c)].setBrightness(vuMeter[c].getBrightness(0.f,  0.f));
-					for (int i = 0; i < VU_LEVELS; i++)
-					{
-						lights[VU_LIGHTS + i + (VU_LEVELS * c)].setBrightness(vuMeter[c].getBrightness(-3.f * i, -3.f * (i - 1)));
-					}
-				//}
+						lights[VU_LIGHTS + 0+ (VU_LEVELS * c)].setBrightness(vuMeter[c].getBrightness(0.f,  0.f));
+						for (int i = 0; i < VU_LEVELS; i++)
+						{
+							lights[VU_LIGHTS + i + (VU_LEVELS * c)].setBrightness(vuMeter[c].getBrightness(-3.f * i, -3.f * (i - 1)));
+						}
+					//}
+				}
 			}
 		}
+		else
+		{
+			for (int c = 0; c < 16; c++)
+			{
+				lights[CHANNEL_LIGHTS + c].setBrightness(0);
+				for (int i = 0; i < VU_LEVELS; i++)
+					{
+						lights[VU_LIGHTS + i + (VU_LEVELS * c)].setBrightness(0);
+					}
+			}
+		}
+		
 	}
 };
 

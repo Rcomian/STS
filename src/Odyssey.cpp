@@ -22,6 +22,8 @@
 using namespace std;
 using namespace rack;
 
+static const int UPSAMPLE = 2;
+
 struct Mix_Loop2
 {
 	///  vars
@@ -229,7 +231,8 @@ struct NotchFilter
 		b2 = -r2;
 	}
 };
-/////////  VCF ////////////////////////////
+/* 
+/////////  VCF OLD////////////////////////////
 
 static float clip(float x)
 {
@@ -282,7 +285,75 @@ struct LadderFilter
 		// TODO This is incorrect when `resonance > 0`. Is the math wrong?
 		//highpass = clip((input - resonance*state[3]) - 4 * state[0] + 6*state[1] - 4*state[2] + state[3]);
 	}
+
 	static const int UPSAMPLE = 2;
+*/
+
+/////////  VCF SIMD ////////////////////////////
+
+template <typename T>
+static T clip(T x)
+{
+	// return std::tanh(x);
+	// Pade approximant of tanh
+	x = simd::clamp(x, -3.f, 3.f);
+	return x * (27 + x * x) / (27 + 9 * x * x);
+}
+
+template <typename T>
+struct LadderFilter
+{
+	T omega0;
+	T resonance = 1;
+	T state[4];
+	T input;
+
+	LadderFilter()
+	{
+		reset();
+		setCutoff(0);
+	}
+
+	void reset()
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			state[i] = 0;
+		}
+	}
+
+	void setCutoff(T cutoff)
+	{
+		omega0 = 2 * T(M_PI) * cutoff;
+	}
+
+	void process(T input, T dt)
+	{
+		dsp::stepRK4(T(0), dt, state, 4, [&](T t, const T x[], T dxdt[]) {
+			T inputc = clip(input - resonance * x[3]);
+			T yc0 = clip(x[0]);
+			T yc1 = clip(x[1]);
+			T yc2 = clip(x[2]);
+			T yc3 = clip(x[3]);
+
+			dxdt[0] = omega0 * (inputc - yc0);
+			dxdt[1] = omega0 * (yc0 - yc1);
+			dxdt[2] = omega0 * (yc1 - yc2);
+			dxdt[3] = omega0 * (yc2 - yc3);
+		});
+
+		this->input = input;
+	}
+
+	T lowpass()
+	{
+		return state[3];
+	}
+	T highpass()
+	{
+		// TODO This is incorrect when `resonance > 0`. Is the math wrong?
+		return clip((input - resonance * state[3]) - 4 * state[0] + 6 * state[1] - 4 * state[2] + state[3]);
+	}
 };
 
 //////    SLEW  //////////////
@@ -345,7 +416,6 @@ struct ADSR
 			  float sTime)
 	{
 
-		
 		gated = gate >= 1.f;
 		if (adsrTrigger.process(trigger))
 			decaying = false;
@@ -405,7 +475,8 @@ struct ADSR
 
 /////////////  LFO STRUCT   /////////////////
 template <typename T>
-struct LowFrequencyOscillator {
+struct LowFrequencyOscillator
+{
 	T phase = 0.f;
 	T pw = 0.5f;
 	T freq = 1.f;
@@ -413,15 +484,18 @@ struct LowFrequencyOscillator {
 	bool bipolar = false;
 	T resetState = T::mask();
 
-	void setPitch(T pitch) {
+	void setPitch(T pitch)
+	{
 		pitch = simd::fmin(pitch, 10.f);
 		freq = simd::pow(2.f, pitch);
 	}
-	void setPulseWidth(T pw) {
+	void setPulseWidth(T pw)
+	{
 		const T pwMin = 0.01f;
 		this->pw = clamp(pw, pwMin, 1.f - pwMin);
 	}
-	void setReset(T reset) {
+	void setReset(T reset)
+	{
 		reset = simd::rescale(reset, 0.1f, 2.f, 0.f, 1.f);
 		T on = (reset >= 1.f);
 		T off = (reset <= 0.f);
@@ -430,46 +504,62 @@ struct LowFrequencyOscillator {
 		resetState = simd::ifelse(on, T::mask(), resetState);
 		phase = simd::ifelse(triggered, 0.f, phase);
 	}
-	void step(float dt) {
+	void step(float dt)
+	{
 		T deltaPhase = simd::fmin(freq * dt, 0.5f);
 		phase += deltaPhase;
 		phase -= (phase >= 1.f) & 1.f;
 	}
-	T sin() {
+	T sin()
+	{
 		T p = phase;
-		if (!bipolar) p -= 0.25f;
-		T v = simd::sin(2*M_PI * p);
-		if (invert) v *= -1.f;
-		if (!bipolar) v += 1.f;
+		if (!bipolar)
+			p -= 0.25f;
+		T v = simd::sin(2 * M_PI * p);
+		if (invert)
+			v *= -1.f;
+		if (!bipolar)
+			v += 1.f;
 		return v;
 	}
-	T tri() {
+	T tri()
+	{
 		T p = phase;
-		if (bipolar) p += 0.25f;
+		if (bipolar)
+			p += 0.25f;
 		T v = 4.f * simd::fabs(p - simd::round(p)) - 1.f;
-		if (invert) v *= -1.f;
-		if (!bipolar) v += 1.f;
+		if (invert)
+			v *= -1.f;
+		if (!bipolar)
+			v += 1.f;
 		return v;
 	}
-	T saw() {
+	T saw()
+	{
 		T p = phase;
-		if (!bipolar) p -= 0.5f;
+		if (!bipolar)
+			p -= 0.5f;
 		T v = 2.f * (p - simd::round(p));
-		if (invert) v *= -1.f;
-		if (!bipolar) v += 1.f;
+		if (invert)
+			v *= -1.f;
+		if (!bipolar)
+			v += 1.f;
 		return v;
 	}
-	T sqr() {
+	T sqr()
+	{
 		T v = simd::ifelse(phase < pw, 1.f, -1.f);
-		if (invert) v *= -1.f;
-		if (!bipolar) v += 1.f;
+		if (invert)
+			v *= -1.f;
+		if (!bipolar)
+			v += 1.f;
 		return v;
 	}
-	T light() {
+	T light()
+	{
 		return 1.f - 2.f * phase;
 	}
 };
-
 
 ////////  Oscillator  /////  EvenVCO  ///
 struct Oscillator
@@ -579,14 +669,13 @@ struct VCA
 			  float lin,
 			  float exp)
 	{
-		//(Input &in, Param &level, Input &lin, Input &exp, Output &out) {
 		v = in * gainSlider;
-	
+
 		v *= clamp(lin / 10.0f, 0.0f, 1.0f);
-	const float expBase = 50.0f;
-	
+		const float expBase = 50.0f;
+
 		v *= rescale(powf(expBase, clamp(exp / 10.0f, 0.0f, 1.0f)), 1.0f, expBase, 0.0f, 1.0f);
-	//out.value = v;
+		//out.value = v;
 	}
 };
 
@@ -715,11 +804,14 @@ struct Odyssey : Module
 		IN_CV_OCTAVE,
 		IN_CV_HPF_CUTOFF,
 		INPUT_EXT_VCF,
-		WAVE_CV_OSC1,		
+		WAVE_CV_OSC1,
 		WAVE_CV_OSC2,
 		WAVE_CV_OSC3,
 		WAVE_CV_LFO,
-		
+
+		ENUMS(FILTER_IN, 18),
+
+		IN_INPUT_1,
 
 		NUM_INPUTS
 	};
@@ -899,7 +991,7 @@ struct Odyssey : Module
 	float inCV2[MAX_POLY_CHANNELS];
 	//  POLY
 	float sum;
-	float vel_in[MAX_POLY_CHANNELS]= {};
+	float vel_in[MAX_POLY_CHANNELS] = {};
 	float PITCH_INPUT;
 	int channels = 1;
 	float oddy_poly_out[MAX_POLY_CHANNELS] = {};
@@ -908,7 +1000,7 @@ struct Odyssey : Module
 	Oscillator oscillator2[MAX_POLY_CHANNELS];
 	Oscillator oscillator3[MAX_POLY_CHANNELS];
 	float wave[MAX_POLY_CHANNELS];
-    float wave2[MAX_POLY_CHANNELS];
+	float wave2[MAX_POLY_CHANNELS];
 	float wave3[MAX_POLY_CHANNELS];
 
 	//LowFrequencyOscillator LFoscillator[MAX_POLY_CHANNELS];
@@ -919,9 +1011,10 @@ struct Odyssey : Module
 	ADSR adsr2[MAX_POLY_CHANNELS];
 	NoiseGenerator noise;
 	PinkFilter pinkFilter;
-	LadderFilter filter[MAX_POLY_CHANNELS];
+	//LadderFilter filter[MAX_POLY_CHANNELS];
+	LadderFilter<simd::float_4> filters[4];
 	VCA vca1[MAX_POLY_CHANNELS];
-	
+
 	Mix_Loop3 FilterMix;
 	Mix_Loop4 AudioMix;
 	Mix_Loop2 S_H_Mix;
@@ -947,8 +1040,8 @@ struct Odyssey : Module
 		configParam(SWITCH_PARAM_NOISE_SEL, 0.f, 1.f, 1.f, "Noise Select");
 		configParam(PARAM_PORTA, 0.0f, 1.f, 0.0f, "Portamento", "%", 0, 100); //.4
 		//configParam(PARAM_PORTA_SHAPE, 0.f, 1.f, 0.5f, "Portamento Shape");
-		configParam(OCTAVE_PARAM, -4.f, 2.f, -1.f, "Octaves");		//, " ", 0.0, 1.0, 0.0);
-		configParam(PITCHBEND_PARAM, -1.f, 1.f, 0.f, "Pitch Bend"); //, " ", 0.0, 1.0, 0.0);
+		configParam(OCTAVE_PARAM, -4.f, 2.f, -1.f, "Octaves");			  //, " ", 0.0, 1.0, 0.0);
+		configParam(PITCHBEND_PARAM, -1.f, 1.f, 0.f, "Pitch Bend");		  //, " ", 0.0, 1.0, 0.0);
 		configParam(ATTEN_PB, 0.f, 1.f, 0.0f, "Pitch Bend Attenverter "); //, " ", 0.0, 1.0, 0.0);
 		//////////////////
 		// Sliders Top Row
@@ -958,7 +1051,6 @@ struct Odyssey : Module
 		configParam(WAVE_ATTEN_OSC1, 0.f, 1.f, 0.1f, "Wave CV Attenverter OSC2 ");
 		configParam(WAVE_ATTEN_OSC1, 0.f, 1.f, 0.1f, "Wave CV Attenverter OSC3 ");
 		configParam(WAVE_ATTEN_LFO, 0.f, 1.f, 0.1f, "Wave CV Attenverter LFO ");
-
 
 		configParam(FREQ_PARAM_OSC1, -5.f, 4.f, 0.f, "Frequency VCO 1"); //," ", 0.5);
 		configParam(FINE_PARAM_OSC1, -7.f, 7.f, 0.f, "Fine Frequency VCO1", " semitones");
@@ -973,17 +1065,18 @@ struct Odyssey : Module
 		configParam(LFO_FM_PARAM, 0.f, 1.f, 0.f, "LFO FM Attenuverter");
 		configParam(SWITCH_PARAM_LFO_TYPE, 0.f, 3, 0.f, "LFO Wave Select");
 
-		configParam(SLIDER_PARAM_LAG, 0.f, 1.f, 0.f, "S & H Lag");			  
-		configParam(SLIDER_PARAM_SH_LVL + 0, 0.f, 1.f, 0.f, "S & H Mixer 1 "); ;
-		configParam(SLIDER_PARAM_SH_LVL + 1, 0.f, 1.f, 0.f, "S & H Mixer 2 "); 
-		configParam(FREQ_PARAM_VCF, 0.f, 1.f, 1.f, "VCF Frequency ");
-		configParam(RES_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Resonance ");
+		configParam(SLIDER_PARAM_LAG, 0.f, 1.f, 0.f, "S & H Lag");
+		configParam(SLIDER_PARAM_SH_LVL + 0, 0.f, 1.f, 0.f, "S & H Mixer 1 ");
+		;
+		configParam(SLIDER_PARAM_SH_LVL + 1, 0.f, 1.f, 0.f, "S & H Mixer 2 ");
+		configParam(FREQ_PARAM_VCF, 0.f, 1.f, 1.f, "VCF Cutoff Frequency", " Hz", std::pow(2, 10.f), dsp::FREQ_C4 / std::pow(2, 5.f));
+		configParam(RES_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Resonance", "%", 0.f, 100.f);
 		configParam(DRIVE_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Drive ");
-		configParam(FREQ_CV_PARAM_VCF, -1.f, 1.f, 0.f, "VCF Filter Mix Offset ");
+		configParam(FREQ_CV_PARAM_VCF, -1.f, 1.f, 0.f, "VCF Cutoff Frequency Modulation", "%", 0.f, 100.f);
 
 		//configParam(HPF_Q_PARAM, 0.f, 1.f, 0.f, "HPF Resonance ");
-		configParam(HPF_FILTER_FREQ, 0.0f, 1.0f, 0.0f, "HPF Cutoff Frequency "); //, " ",0.0, 1.0, 0.0);
-		configParam(HPF_FMOD_PARAM, -1.f, 1.f, 0.f, "HPF Cutoff CV Offset "); //, " ",0.0, 1.0, 0.0);
+		configParam(HPF_FILTER_FREQ, 0.0f, 1.0f, 0.0f, "HPF Cutoff Frequency ", " Hz", std::pow(2, 10.f), dsp::FREQ_C4 / std::pow(2, 5.f)); //, " ",0.0, 1.0, 0.0);
+		configParam(HPF_FMOD_PARAM, -1.f, 1.f, 0.f, "HPF Cutoff Frequency Modulation", "%", 0.f, 100.f);									//, " ",0.0, 1.0, 0.0);
 
 		//configParam(LEVEL1_PARAM_VCA, 0.0f, 1.0f, 0.0f, "VCA Level NO ADSR", "%", 0, 100);
 
@@ -1028,22 +1121,22 @@ struct Odyssey : Module
 		//configParam(SYNC_PARAM_OSC2, 0.0f, 1.0f, 1.0f, " "); //, " ",0.0, 1.0, 0.0);
 
 		/////////////////// Switches ////////////////////
-		configParam(SWITCH_PARAM_FM_OSC1 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC1 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC1 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC1 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC1 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC1 + 1, 0.0, 1.0, 0.0, " ");			//, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC1 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC1 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_FM_OSC2 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC2 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC2 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC2 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC2 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC2 + 1, 0.0, 1.0, 0.0, " ");			//, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC2 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC2 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
-		configParam(SWITCH_PARAM_FM_OSC3 + 0, 0.0, 1.0, 1.0, " ");			 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC3 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_FM_OSC3 + 0, 0.0, 1.0, 1.0, " ");  //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_FM_OSC3 + 1, 0.0, 1.0, 0.0, " ");			 //, " ",0.0, 1.0, 0.0);
-		configParam(SWITCH_PARAM_PWM_OSC3 + 0, 0.0, 1.0, 1.0, " ");		 //, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_FM_OSC3 + 1, 0.0, 1.0, 0.0, " ");			//, " ",0.0, 1.0, 0.0);
+		configParam(SWITCH_PARAM_PWM_OSC3 + 0, 0.0, 1.0, 1.0, " ");			//, " ",0.0, 1.0, 0.0);
 		configParam(SWITCH_PARAM_LFO_MOD_PWM_OSC3 + 0, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
 
 		configParam(SWITCH_PARAM_SH_LFO_KEY, 0.0, 1.0, 1.0, " "); //, " ",0.0, 1.0, 0.0);
@@ -1101,36 +1194,20 @@ struct Odyssey : Module
 
 	void process(const ProcessArgs &args) override
 	{
-		
+
 		if (inputs[IN_VOLT_OCTAVE_INPUT_1].isConnected())
 		{
-			channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
-			using simd::float_4;
-		
-			////////////////////////////////////////////////////////
-			///////////////////////  VU Meter //////////////////////
-			////////////////////////////////////////////////////////
-			
-			if (vuDivider.process())
-			{
-				vuMeter.process(args.sampleTime * vuDivider.getDivision(), outputs[MONO_OUTPUT].value / 10.f);
-			}
+			//channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
+			int channels = std::max(1, inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels());
 
-			// Set channel lights infrequently
-			if (lightDivider.process())
-			{
-				for (int i = 0; i < 10; i++)
-				{
-					lights[VU1_LIGHT + i].setBrightness(vuMeter.getBrightness(-3.f * i, -3.f * (i - 1)));
-				}
-			}
-			
+			using simd::float_4;
+
 			////////////////////////////////////////////////////////
 			//////////               VCA 1 ADSR      ////////////
 			////////////////////////////////////////////////////////
-			
+
 			if (inputs[IN_VELOCITY].isConnected())
-			
+
 			{
 				for (int i = 0; i < channels; ++i)
 				{
@@ -1144,24 +1221,40 @@ struct Odyssey : Module
 					vel_in[i] = 10.0f;
 				}
 			}
-			
+
 			for (int i = 0; i < channels; ++i)
 			{
-				vca1[i].step(OUT_HP[i], params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), vel_in[i], OUT_OUTPUT_AR_ADSR[i]);   //exp
-				oddy_poly_out[i] = vca1[i].v; // / 10;
-			}			
+				vca1[i].step(OUT_HP[i], params[SLIDER_PARAM_AR_ADSR_LVL].getValue(), vel_in[i], OUT_OUTPUT_AR_ADSR[i]); //exp
+				oddy_poly_out[i] = vca1[i].v;																			// / 10;
+			}
 			outputs[MAIN_AUDIO_OUT].setChannels(channels);
 			outputs[MAIN_AUDIO_OUT].writeVoltages(oddy_poly_out);
 
-			if (outputs[MONO_OUTPUT].isConnected())
+			sum = 0.f;
+			for (int i = 0; i < channels; i++)
 			{
-				sum = 0.f;
-				for (int i = 0; i < channels; i++) {
-					sum += oddy_poly_out[i];
-				}
-				outputs[MONO_OUTPUT].setVoltage(sum);
+				sum += oddy_poly_out[i];
+			}
+			outputs[MONO_OUTPUT].setVoltage(sum);
+
+			////////////////////////////////////////////////////////
+			///////////////////////  VU Meter //////////////////////
+			////////////////////////////////////////////////////////
+
+			if (vuDivider.process())
+			{
+				vuMeter.process(args.sampleTime * vuDivider.getDivision(), outputs[MONO_OUTPUT].value / 10.f);
 			}
 
+			// Set channel lights infrequently
+			if (lightDivider.process())
+			{
+				lights[VU1_LIGHT + 0].setBrightness(vuMeter.getBrightness(0.f, 0.f));
+				for (int i = 1; i < 10; i++)
+				{
+					lights[VU1_LIGHT + i].setBrightness(vuMeter.getBrightness(-3.f * i, -3.f * (i - 1)));
+				}
+			}
 
 			/////////////////////////////////////////////////////////
 			///////////////  ADSR  Input switches   /////////////////
@@ -1172,15 +1265,15 @@ struct Odyssey : Module
 			//	inputs[IN_TRIGGER_INPUT_1].setChannels(channels);
 			//	inputs[IN_TRIGGER_INPUT_1].writeVoltages(trigger_signal_in);
 			//}
-		
-			if (params[SWITCH_PARAM_ADSR1_SW1].getValue()  && !inputs[IN_GATE_INPUT_1].isConnected())
+
+			if (params[SWITCH_PARAM_ADSR1_SW1].getValue() && !inputs[IN_GATE_INPUT_1].isConnected())
 			{
 				for (int i = 0; i < channels; ++i)
 				{
 					gate_signal_ADSR1[i] = LFO_SQR_OUTPUT[i];
 				}
 			}
-			
+
 			if (params[SWITCH_PARAM_ADSR2_SW1].getValue() && !inputs[IN_GATE_INPUT_1].isConnected())
 			{
 				for (int i = 0; i < channels; ++i)
@@ -1238,8 +1331,6 @@ struct Odyssey : Module
 				lights[RELEASE_LIGHT_2].value = (!adsr2[i].gated && !adsr2[i].resting) ? 1.0f : 0.0f;
 			}
 
-			
-			
 			// Octave Switch
 			OUT_OUTPUT_OCTAVE = params[OCTAVE_PARAM].getValue();
 			// Pitch bend
@@ -1255,7 +1346,7 @@ struct Odyssey : Module
 			//////////// Sample and hold mixer   (2)  ////////////
 			///////////  SWITCH_PARAM_FILTER +0,1,2  /////////////
 			////////////  SWITCH_PARAM_LFO_MOD_VCF   /////////////
-			if (params[SLIDER_PARAM_SH_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_SH_LVL + 1].getValue() > 0.1f )
+			if (params[SLIDER_PARAM_SH_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_SH_LVL + 1].getValue() > 0.1f)
 			{
 				for (int i = 0; i < channels; ++i)
 				{
@@ -1280,22 +1371,22 @@ struct Odyssey : Module
 					}
 					///////////  Call Mix_Loop 2
 					S_H_Mix.step(F_IN0[i],
-								F_IN1[i],
-								params[SLIDER_PARAM_SH_LVL + 0].getValue(),
-								params[SLIDER_PARAM_SH_LVL + 1].getValue());
+								 F_IN1[i],
+								 params[SLIDER_PARAM_SH_LVL + 0].getValue(),
+								 params[SLIDER_PARAM_SH_LVL + 1].getValue());
 
 					SH_MIX[i] = S_H_Mix.output;
 				}
-			
-			////////////////////////////////////////////////////////
-			/////////////////    Sample & Hold    //////////////////
-			//////////////////////////////////Thanks to Southpole///
+
+				////////////////////////////////////////////////////////
+				/////////////////    Sample & Hold    //////////////////
+				//////////////////////////////////Thanks to Southpole///
 
 				for (int i = 0; i < channels; ++i)
 				{
 					if (params[SWITCH_PARAM_SH_LFO_KEY].getValue())
 					{
-						TRIGGER_SH_INPUT[i] = LFO_OUTPUT[i]; 
+						TRIGGER_SH_INPUT[i] = LFO_OUTPUT[i];
 					}
 					else
 					{
@@ -1306,7 +1397,7 @@ struct Odyssey : Module
 						OUT_TO_LAG[i] = SH_MIX[i];
 					//OUTPUT_SH[i] = SH_MIX[i];
 				}
-			
+
 				//	S/H lag
 				for (int i = 0; i < channels; ++i)
 				{
@@ -1325,11 +1416,11 @@ struct Odyssey : Module
 					}
 				}
 			}
-		
+
 			////////////////////////////////////////////////////////
 			//////////////////     Portamento     //////////////////
 			////////////////////////////////////////////////////////
-			
+
 			//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
 
 			if (inputs[IN_PORTA_ON_OFF].isConnected())
@@ -1343,9 +1434,9 @@ struct Odyssey : Module
 					}
 					else
 					{
-						PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
+						PORTA_OUT[i] = inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
 					}
-				}	
+				}
 			}
 			else
 			{
@@ -1358,11 +1449,11 @@ struct Odyssey : Module
 					}
 					else
 					{
-						PORTA_OUT[i]=inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
+						PORTA_OUT[i] = inputs[IN_VOLT_OCTAVE_INPUT_1].getPolyVoltage(i);
 					}
 				}
 			}
-			
+
 			////////////////////////////////////////////////////////
 			//////////////////////     LFO     /////////////////////
 			////////////////////////////////////////////////////////
@@ -1370,7 +1461,7 @@ struct Odyssey : Module
 			float waveParam = params[WAVE_ATTEN_LFO].getValue();
 			float fmParam = params[LFO_FM_PARAM].getValue();
 
-			for (int c = 0; c < channels; c += 4) 
+			for (int c = 0; c < channels; c += 4)
 			{
 				auto *oscillator = &oscillators[c / 4];
 				float_4 pitch = freqParam;
@@ -1386,7 +1477,7 @@ struct Odyssey : Module
 					wave += inputs[WAVE_CV_LFO].getVoltage() / 10.f * 3.f;
 				else
 					wave += float_4::load(inputs[WAVE_CV_LFO].getVoltages(c)) / 10.f * 3.f;
-					//wave += inputs[WAVE_CV_LFO].getPolyVoltageSimd<float_4>(c) / 10.f * 3.f;
+				//wave += inputs[WAVE_CV_LFO].getPolyVoltageSimd<float_4>(c) / 10.f * 3.f;
 				wave = clamp(wave, 0.f, 3.f);
 
 				// Settings
@@ -1394,9 +1485,9 @@ struct Odyssey : Module
 				//oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
 				oscillator->step(args.sampleTime);
 				//	oscillator->setReset(inputs[IN_TRIGGER_INPUT_1].getVoltages(c));
-				
+
 				// Outputs
-				if (inputs[WAVE_CV_LFO].isConnected()) 
+				if (inputs[WAVE_CV_LFO].isConnected())
 				{
 					//outputs[OUT_OUTPUT_1].setChannels(channels);
 					float_4 v = 0.f;
@@ -1410,58 +1501,63 @@ struct Odyssey : Module
 				}
 				else
 				{
-					if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0) {
+					if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 0)
+					{
 						//outputs[OUT_OUTPUT_1].setChannels(channels);
 						float_4 v = 5.f * oscillator->sin();
 						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
 						v.store(LFO_OUTPUT);
 					}
-					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1) {
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 1)
+					{
 						//outputs[OUT_OUTPUT_1].setChannels(channels);
 						float_4 v = 5.f * oscillator->tri();
 						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
 						v.store(LFO_OUTPUT);
 					}
-					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2) {
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 2)
+					{
 						//outputs[OUT_OUTPUT_1].setChannels(channels);
 						float_4 v = 5.f * oscillator->saw();
 						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
 						v.store(LFO_OUTPUT);
 					}
-					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3) {
+					else if (params[SWITCH_PARAM_LFO_TYPE].getValue() == 3)
+					{
 						//outputs[OUT_OUTPUT_1].setChannels(channels);
 						float_4 v = 5.f * oscillator->sqr();
 						//v.store(outputs[OUT_OUTPUT_1].getVoltages(c));
 						v.store(LFO_OUTPUT);
 					}
 				}
-				
 			}
-			
+
 			// Light
-			if (lightDividerLFO.process()) {
-				if (channels == 1) {
+			if (lightDividerLFO.process())
+			{
+				if (channels == 1)
+				{
 					float lightValue = oscillators[0].light().s[0];
 					lights[PHASE_LIGHT + 0].setSmoothBrightness(-lightValue, args.sampleTime * lightDivider.getDivision());
 					lights[PHASE_LIGHT + 1].setSmoothBrightness(lightValue, args.sampleTime * lightDivider.getDivision());
 					lights[PHASE_LIGHT + 2].setBrightness(0.f);
 				}
-				else {
+				else
+				{
 					lights[PHASE_LIGHT + 0].setBrightness(0.f);
 					lights[PHASE_LIGHT + 1].setBrightness(0.f);
 					lights[PHASE_LIGHT + 2].setBrightness(1.f);
 				}
 			}
 
-
 			//channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
 			////////////////////////////////////////////////////////
 			//////////////    FM IN OSC1         ///////////////////
 			////////////////////////////////////////////////////////
-			
+
 			for (int i = 0; i < channels; ++i)
 			{
-				if (params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue() > 0.1f )
+				if (params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue() > 0.1f)
 				{
 					///  #1 - MW, LFO,  ADSR to VCO
 					if (params[SWITCH_PARAM_FM_OSC1 + 0].getValue() && !inputs[IN_CV_1].isConnected())
@@ -1493,9 +1589,9 @@ struct Odyssey : Module
 
 					///////////  Call Mix_Loop 2
 					FM_1_Mix.step(F_IN0[i],
-								F_IN1[i],
-								params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue(),
-								params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue());
+								  F_IN1[i],
+								  params[SLIDER_PARAM_FM_OSC1_LVL + 0].getValue(),
+								  params[SLIDER_PARAM_FM_OSC1_LVL + 1].getValue());
 
 					FM_INPUT_OSC1[i] = FM_1_Mix.output;
 					//FM_INPUT_OSC1[i] = clamp(FM_INPUT_OSC1[i], 0.f, 10.f);
@@ -1503,7 +1599,7 @@ struct Odyssey : Module
 				////////////////////////////////////////////////////////
 				///////////////   PWM IN To OSC1 1 (1)   ///////////////
 				////////////////////////////////////////////////////////
-			
+
 				///  #1 - MW, LFO,  ADSR to VCO
 				if (params[SWITCH_PARAM_PWM_OSC1].getValue())
 				{
@@ -1519,7 +1615,7 @@ struct Odyssey : Module
 				}
 
 				PWM_TO_OSC1[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC1_LVL].getValue(), 2.f);
-			
+
 				//////////////////////////////////////////////////////////////
 				/////////////////////  VCO 1   ///////////////////////////////
 				//////////////////////////////////////////////////////////////
@@ -1536,14 +1632,11 @@ struct Odyssey : Module
 					args.sampleTime);
 				// Set outputs
 
-				
-				
-				
 				if (inputs[WAVE_CV_OSC1].isConnected())
-				{                
+				{
 					wave[i] = params[WAVE_ATTEN_OSC1].getValue() + (inputs[WAVE_CV_OSC1].getPolyVoltage(i) / 3);
 					wave[i] = clamp(wave[i], 0.f, 3.f);
-					
+
 					if (wave[i] < 1.f)
 						OSC1_OUTPUT[i] = (crossfade(oscillator1[i].sine, oscillator1[i].tri, wave[i])) * 5.f;
 					else if (wave[i] < 2.f)
@@ -1582,7 +1675,7 @@ struct Odyssey : Module
 			////////////////////////////////////////////////////////
 			for (int i = 0; i < channels; ++i)
 			{
-				if (params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue() > 0.1f )
+				if (params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue() > 0.1f)
 				{
 					///  #1 - MW, LFO,  ADSR to VCO
 					if (params[SWITCH_PARAM_FM_OSC2 + 0].getValue() && !inputs[IN_CV_1].isConnected())
@@ -1614,9 +1707,9 @@ struct Odyssey : Module
 
 					///////////  Call Mix_Loop 2
 					FM_2_Mix.step(F_IN0[i],
-								F_IN1[i],
-								params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue(),
-								params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue());
+								  F_IN1[i],
+								  params[SLIDER_PARAM_FM_OSC2_LVL + 0].getValue(),
+								  params[SLIDER_PARAM_FM_OSC2_LVL + 1].getValue());
 
 					FM_INPUT_OSC2[i] = FM_2_Mix.output;
 
@@ -1625,7 +1718,7 @@ struct Odyssey : Module
 				////////////////////////////////////////////////////////
 				///////////////   PWM IN To OSC2        ///////////////
 				////////////////////////////////////////////////////////
-			
+
 				///  #1 - MW, LFO,  ADSR to VCO
 				if (params[SWITCH_PARAM_PWM_OSC2].getValue())
 				{
@@ -1641,7 +1734,7 @@ struct Odyssey : Module
 				}
 
 				PWM_TO_OSC2[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC2_LVL].getValue(), 2.f);
-			
+
 				//////////////////////////////////////////////////////////////
 				/////////////////////  VCO 2 /////////////////////////////////
 				//////////////////////////////////////////////////////////////
@@ -1659,10 +1752,10 @@ struct Odyssey : Module
 				// Set outputs
 
 				if (inputs[WAVE_CV_OSC2].isConnected())
-				{                
+				{
 					wave2[i] = params[WAVE_ATTEN_OSC2].getValue() + (inputs[WAVE_CV_OSC2].getPolyVoltage(i) / 3);
 					wave2[i] = clamp(wave2[i], 0.f, 3.f);
-					
+
 					if (wave2[i] < 1.f)
 						OSC2_OUTPUT[i] = (crossfade(oscillator2[i].sine, oscillator2[i].tri, wave2[i])) * 5.f;
 					else if (wave2[i] < 2.f)
@@ -1701,7 +1794,7 @@ struct Odyssey : Module
 			////////////////////////////////////////////////////////
 			for (int i = 0; i < channels; ++i)
 			{
-				if (params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue() > 0.1f )
+				if (params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue() > 0.1f)
 				{
 					///  #1 - MW, LFO,  ADSR to VCO
 					if (params[SWITCH_PARAM_FM_OSC3 + 0].getValue() && !inputs[IN_CV_1].isConnected())
@@ -1733,17 +1826,17 @@ struct Odyssey : Module
 
 					///////////  Call Mix_Loop 3
 					FM_3_Mix.step(F_IN0[i],
-								F_IN1[i],
-								params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue(),
-								params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue());
+								  F_IN1[i],
+								  params[SLIDER_PARAM_FM_OSC3_LVL + 0].getValue(),
+								  params[SLIDER_PARAM_FM_OSC3_LVL + 1].getValue());
 					FM_INPUT_OSC3[i] = FM_3_Mix.output;
 
 					//FM_INPUT_OSC3[i] = clamp(FM_INPUT_OSC3[i], 0.f, 10.f);
 				}
-			////////////////////////////////////////////////////////
-			///////////////   PWM IN To OSC3 1 (1)   ///////////////
-			////////////////////////////////////////////////////////
-			
+				////////////////////////////////////////////////////////
+				///////////////   PWM IN To OSC3 1 (1)   ///////////////
+				////////////////////////////////////////////////////////
+
 				///  #1 - MW, LFO,  ADSR to VCO
 				if (params[SWITCH_PARAM_PWM_OSC3].getValue())
 				{
@@ -1759,10 +1852,10 @@ struct Odyssey : Module
 				}
 
 				PWM_TO_OSC3[i] *= std::pow(params[SLIDER_PARAM_PWM_OSC3_LVL].getValue(), 2.f);
-			
-			//////////////////////////////////////////////////////////////
-			///////////////////////  VCO 3  //////////////////////////////
-			//////////////////////////////////////////////////////////////
+
+				//////////////////////////////////////////////////////////////
+				///////////////////////  VCO 3  //////////////////////////////
+				//////////////////////////////////////////////////////////////
 
 				PITCH_INPUT = PORTA_OUT[i] + OUT_OUTPUT_TO_FM_OSC3[i] + OUT_OUTPUT_OCTAVE + OUT_OUTPUT_PITCHBEND; ///////  +porta_out
 
@@ -1776,10 +1869,10 @@ struct Odyssey : Module
 					args.sampleTime);
 				// Set outputs
 				if (inputs[WAVE_CV_OSC3].isConnected())
-				{                
+				{
 					wave3[i] = params[WAVE_ATTEN_OSC3].getValue() + (inputs[WAVE_CV_OSC3].getPolyVoltage(i) / 3);
 					wave3[i] = clamp(wave3[i], 0.f, 3.f);
-					
+
 					if (wave3[i] < 1.f)
 						OSC3_OUTPUT[i] = (crossfade(oscillator3[i].sine, oscillator3[i].tri, wave3[i])) * 5.f;
 					else if (wave2[i] < 2.f)
@@ -1812,7 +1905,6 @@ struct Odyssey : Module
 					}
 				}
 			}
-			
 
 			////////////////////////////////////////////////////////
 			//////////////////   Ring Modulation   /////////////////
@@ -1849,7 +1941,7 @@ struct Odyssey : Module
 				{
 					pinkFilter.process(white);
 					NOISE_OUT[i] = 10.0f * clamp(0.18f * pinkFilter.pink(), -1.0f, 1.0f);
-					NOISE_OUT[i]  *= std::pow(1, 3.f);
+					NOISE_OUT[i] *= std::pow(1, 3.f);
 				}
 			}
 			///////////////////////////////////////////////////
@@ -1870,16 +1962,15 @@ struct Odyssey : Module
 
 				///////////  Call Mix_Loop 4
 				AudioMix.step(F_IN0[i],
-							OSC1_OUTPUT[i],
-							OSC2_OUTPUT[i],
-							OSC3_OUTPUT[i],
-							params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue(),
-							params[SLIDER_PARAM_TO_AUDIO_LVL + 1].getValue(),
-							params[SLIDER_PARAM_TO_AUDIO_LVL + 2].getValue(),
-							params[SLIDER_PARAM_TO_AUDIO_LVL + 3].getValue());
+							  OSC1_OUTPUT[i],
+							  OSC2_OUTPUT[i],
+							  OSC3_OUTPUT[i],
+							  params[SLIDER_PARAM_TO_AUDIO_LVL + 0].getValue(),
+							  params[SLIDER_PARAM_TO_AUDIO_LVL + 1].getValue(),
+							  params[SLIDER_PARAM_TO_AUDIO_LVL + 2].getValue(),
+							  params[SLIDER_PARAM_TO_AUDIO_LVL + 3].getValue());
 
-				AUDIO_MIX[i] = AudioMix.output;
-				
+				AUDIO_MIX[i] = AudioMix.output ;
 			}
 
 			outputs[OUTPUT_TO_EXT_VCF].setChannels(channels);
@@ -1888,7 +1979,7 @@ struct Odyssey : Module
 			//////////////////////////////////////////////////////////////
 			/////////////////    Filter Inputs   (3)  ////////////////////
 			//////////////////////////////////////////////////////////////
-			if ( params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue() > 0.1f)
+			if (params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue() > 0.1f || params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue() > 0.1f)
 			{
 				for (int i = 0; i < channels; ++i)
 				{
@@ -1938,27 +2029,23 @@ struct Odyssey : Module
 					}
 					///////////  Call Mix_Loop 3
 					FilterMix.step(F_IN0[i],
-								F_IN1[i],
-								F_IN2[i],
-								params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue(),
-								params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue(),
-								params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue());
+								   F_IN1[i],
+								   F_IN2[i],
+								   params[SLIDER_PARAM_TO_FILTER_LVL + 0].getValue(),
+								   params[SLIDER_PARAM_TO_FILTER_LVL + 1].getValue(),
+								   params[SLIDER_PARAM_TO_FILTER_LVL + 2].getValue());
 
 					FILTER_MIX[i] = FilterMix.output;
 				}
-			}
-			////////////////////////////////////////////////////////
-			////////////////////////   VCF   ///////////////////////
-			////////////////////////////////////////////////////////
-
-			for (int i = 0; i < channels; ++i)
-			{
-				FREQ_INPUT_VCF[i] = FILTER_MIX[i];
 			}
 
 			outputs[OUT_FILTER_MIX_OUTPUT].setChannels(channels);
 			outputs[OUT_FILTER_MIX_OUTPUT].writeVoltages(FILTER_MIX);
 
+			////////////////////////////////////////////////////////
+			////////////////////////   VCF        //////////////////
+			////////////////////////////////////////////////////////
+			
 			if (outputs[OUT_FREQ_PARAM_VCF].isConnected())
 			{
 				outputs[OUT_FREQ_PARAM_VCF].value = params[FREQ_PARAM_VCF].getValue() * 10;
@@ -1972,53 +2059,64 @@ struct Odyssey : Module
 				outputs[OUT_DRIVE_PARAM_VCF].value = params[DRIVE_PARAM_VCF].getValue() * 10;
 			}
 
-			
 			if (!inputs[INPUT_EXT_VCF].isConnected())
 			{
-				for (int i = 0; i < channels; ++i)
-				{
-					Finput[i] = AUDIO_MIX[i];       //// / 5.f);
-					//float drive = clamp(params[DRIVE_PARAM_VCF].getValue() + DRIVE_INPUT_VCF / 10.f, 0.f, 1.f);
-					float drive = params[DRIVE_PARAM_VCF].getValue();
-					float gain = std::pow(1.f + drive, 5);
-					Finput[i] *= gain;
 
-					// Add -60dB noise to bootstrap self-oscillation
-					Finput[i] += 1e-6f * (2.f * random::uniform() - 1.f);
+				for (int c = 0; c < channels; c += 4)
+				{
+
+					float driveParam = params[DRIVE_PARAM_VCF].getValue(); //DRIVE_PARAM
+					float resParam = params[RES_PARAM_VCF].getValue();	 //RES_PARAM
+					float fineParam = 0.5f;
+					fineParam = dsp::quadraticBipolar(fineParam * 2.f - 1.f) * 7.f / 12.f;
+					float freqCvParam = params[FREQ_CV_PARAM_VCF].getValue(); //FREQ_CV_PARAM                 // FREQ_CV_PARAM
+					freqCvParam = dsp::quadraticBipolar(freqCvParam);
+					float freqParam = params[FREQ_PARAM_VCF].getValue(); //FREQ_PARAM
+					freqParam = freqParam * 10.f - 5.f;
+
+
+					auto *filter = &filters[c / 4];
+
+					float_4 input = float_4::load(&AUDIO_MIX[c]);
+
+					// Drive gain
+					float_4 drive = driveParam;
+					drive = clamp(drive, 0.f, 1.f);
+					float_4 gain = simd::pow(1.f + drive, 5);
+					input *= gain;
+
+					// Add -120dB noise to bootstrap self-oscillation
+					input += 1e-6f * (2.f * random::uniform() - 1.f);
 
 					// Set resonance
-					float res = params[RES_PARAM_VCF].getValue();
-					filter[i].resonance = std::pow(res, 2) * 10.f;
+					//float_4 resonance = resParam + inputs[RES_PARAM_VCF].getPolyVoltageSimd<float_4>(c) / 10.f;
+					float_4 resonance = resParam / 10.f;
+					resonance = clamp(resonance, 0.f, 1.f);
+					filter->resonance = simd::pow(resonance, 2) * 10.f;
 
-					// Set cutoff frequency
-					float pitch = 0.f;
-					pitch += FREQ_INPUT_VCF[i] * dsp::quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
-					//pitch += FREQ_INPUT_VCF * quadraticBipolar(params[FREQ_CV_PARAM_VCF].getValue());
-					pitch += params[FREQ_PARAM_VCF].getValue() * 10.f - 5.f;
-					//pitch += quadraticBipolar(params[FINE_PARAM_VCF].getValue() * 2.f - 1.f) * 7.f / 12.f;
-					float cutoff = 261.626f * std::pow(2.f, pitch);
+					// Get pitch
+					//float_4 pitch = freqParam + fineParam + inputs[FREQ_PARAM_VCF].getPolyVoltageSimd<float_4>(c) * freqCvParam;
+
+					float_4 pitch = (freqParam + fineParam + (FILTER_MIX[c] + FILTER_MIX[c+1] + FILTER_MIX[c+2] + FILTER_MIX[c+3]) * freqCvParam); 
+
+					// Set cutoff
+					float_4 cutoff = dsp::FREQ_C4 * simd::pow(2.f, pitch);
 					cutoff = clamp(cutoff, 1.f, 8000.f);
-					filter[i].setCutoff(cutoff);
+					filter->setCutoff(cutoff);
 
-					filter[i].process(Finput[i], args.sampleTime);
-					LPF_OUTPUT_VCF[i] = 5.f * filter[i].lowpass;
-					IN_HPF[i] = LPF_OUTPUT_VCF[i];
+					// Set outputs
+					filter->process(input, args.sampleTime);
+					float_4 lowpass = 5.f * filter->lowpass();
+					lowpass.store(&IN_HPF[c]);
 				}
+				
 			}
-			else 
-			{
-				for (int i = 0; i < channels; ++i)
-				{
-					IN_HPF[i] = inputs[INPUT_EXT_VCF].getPolyVoltage(i) / 10.0f; // Ext filter in to HP filter
-				}
-			}
-			
-			
+
 			//////////////////////////////////////////////////
 			//////////////////   HPF     /////////////////////
 			/////////     Bidoo Perco       //////////////////
 			//inputs[IN_VOLT_OCTAVE_INPUT_1].getVoltages(voct);
-			
+
 			for (int i = 0; i < channels; ++i)
 			{
 				//IN_CV_HPF_CUTOFF
@@ -2032,22 +2130,22 @@ struct Odyssey : Module
 				if (!inputs[INPUT_EXT_VCF].isConnected())
 				{
 					HPFin[i] = IN_HPF[i] * 0.3f; //normalise to -1/+1 we consider VCV Rack standard is #+5/-5V on VCO1
-					//filtering
-					hpfFilter[i].calcOutput(HPFin[i]);
+												 //filtering
+												 //hpfFilter[i].calcOutput(HPFin[i]);
 				}
 				else
 				{
-					HPFin[i] =inputs[INPUT_EXT_VCF].getVoltage(i);
-					hpfFilter[i].calcOutput(HPFin[i]);
+					HPFin[i] = inputs[INPUT_EXT_VCF].getVoltage(i);
+					//hpfFilter[i].calcOutput(HPFin[i]);
 				}
+				hpfFilter[i].calcOutput(HPFin[i]);
 				OUT_HP[i] = hpfFilter[i].hp * 5.0f;
 			}
-			//outputs[OUT_OUTPUT_1].setChannels(channels);
-			//outputs[OUT_OUTPUT_1].writeVoltages(OUT_HP);
+
 			////////////////////////////////////////////////////////
 			///////////////  ADSR TO VCA slider  ///////////////////
 			////////////////////////////////////////////////////////
-			
+
 			for (int i = 0; i < channels; ++i)
 			{
 				if (params[SWITCH_PARAM_AR_ADSR].getValue())
@@ -2064,23 +2162,11 @@ struct Odyssey : Module
 		}
 		else
 		{
-			//channels = 0;
-			//for (int i = 0; i < 16; i++) 
-			//{
-			//	oddy_poly_out[i] = 0; 
-			//}
 			outputs[MAIN_AUDIO_OUT].setChannels(0);
-			//outputs[MAIN_AUDIO_OUT].writeVoltages(oddy_poly_out);
 
 			sum = 0.f;
-			//for (int i = 0; i < channels; i++) 
-			//{
-			//	sum += oddy_poly_out[i];
-			//}
 			outputs[MONO_OUTPUT].setVoltage(sum);
-
 		}
-		
 	}
 };
 //void Odyssey::onReset() {
@@ -2180,7 +2266,7 @@ struct OdysseyWidget : ModuleWidget
 		// Add Pitch Bend Knob
 		addParam(createParam<sts_Davies47_Grey>(Vec(149, 280), module, Odyssey::PITCHBEND_PARAM)); //, -1.0, 1.0, 0.0));
 		addParam(createParam<sts_Davies15_Grey>(Vec(164.5, 345), module, Odyssey::ATTEN_PB));
-		
+
 		////   LFO
 		addChild(createLight<SmallLight<RedGreenBlueLight>>(Vec(499, 50), module, Odyssey::PHASE_LIGHT));
 		////   VU
@@ -2207,52 +2293,53 @@ struct OdysseyWidget : ModuleWidget
 		addChild(createLight<SmallLight<RedLight>>(Vec(833, 50), module, Odyssey::SUSTAIN_LIGHT_2));
 		addChild(createLight<SmallLight<RedLight>>(Vec(860, 50), module, Odyssey::RELEASE_LIGHT_2));
 
-		
 		////   OSC2
 		//addParam(createParam<sts_CKSS>(Vec(377, 57), module, Odyssey::SYNC_PARAM_OSC2, 0.0f, 1.0f, 1.0f));
 
 		/////   All Outpus / Inputs    338    8  ,  44  , 79  ,   114
 		int x1 = 10;
 		int x2 = 62;
-		int x3 = 114;;
+		int x3 = 114;
+		;
 		//int x4 = 114;
-		addOutput(createOutput<sts_Port>(Vec(x1, 20), module, Odyssey::MAIN_AUDIO_OUT));		 // Main Output Poly
+		addOutput(createOutput<sts_Port>(Vec(x1, 20), module, Odyssey::MAIN_AUDIO_OUT));	 // Main Output Poly
 		addOutput(createOutput<sts_Port>(Vec(x1, 70), module, Odyssey::MONO_OUTPUT));		 // Main Output Mono
-		addOutput(createOutput<sts_Port>(Vec(x1, 120), module, Odyssey::OUTPUT_TO_EXT_VCF));   // AUDIO MIX OUT
+		addOutput(createOutput<sts_Port>(Vec(x1, 120), module, Odyssey::OUTPUT_TO_EXT_VCF)); // AUDIO MIX OUT
 		addOutput(createOutput<sts_Port>(Vec(x1, 170), module, Odyssey::OUT_FILTER_MIX_OUTPUT));
-		addOutput(createOutput<sts_Port>(Vec(x1, 220), module, Odyssey::OUT_FREQ_PARAM_VCF));    // filter freq
-		addOutput(createOutput<sts_Port>(Vec(x1, 270), module, Odyssey::OUT_RES_PARAM_VCF));     // filter res
-		addOutput(createOutput<sts_Port>(Vec(x1, 320), module, Odyssey::OUT_DRIVE_PARAM_VCF));	   // filter drive
+		addOutput(createOutput<sts_Port>(Vec(x1, 220), module, Odyssey::OUT_FREQ_PARAM_VCF));  // filter freq
+		addOutput(createOutput<sts_Port>(Vec(x1, 270), module, Odyssey::OUT_RES_PARAM_VCF));   // filter res
+		addOutput(createOutput<sts_Port>(Vec(x1, 320), module, Odyssey::OUT_DRIVE_PARAM_VCF)); // filter drive
 		//
 
-		addInput(createInput<sts_Port>(Vec(x2, 20), module, Odyssey::INPUT_EXT_VCF));		  // INPUT_VCF_INPUT from ext VCF
-		addInput(createInput<sts_Port>(Vec(x2, 70), module, Odyssey::IN_CV_1));                 // CV 1 IN
-		addInput(createInput<sts_Port>(Vec(x2, 120), module, Odyssey::IN_CV_2));                // CV 2 IN
-    	addInput(createInput<sts_Port>(Vec(x2, 170), module, Odyssey::IN_CV_HPF_CUTOFF));      // CV hpf
-		addInput(createInput<sts_Port>(Vec(x2, 220), module, Odyssey::WAVE_CV_LFO));			
-		addInput(createInput<sts_Port>(Vec(x2, 270), module, Odyssey::IN_CV_LFO));				// CV LFO IN
-		addInput(createInput<sts_Port>(Vec(x2, 320), module, Odyssey::IN_PORTA_ON_OFF));		 // Portamento on/off
+		addInput(createInput<sts_Port>(Vec(x2, 20), module, Odyssey::INPUT_EXT_VCF));	 // INPUT_VCF_INPUT from ext VCF
+		addInput(createInput<sts_Port>(Vec(x2, 70), module, Odyssey::IN_CV_1));			  // CV 1 IN
+		addInput(createInput<sts_Port>(Vec(x2, 120), module, Odyssey::IN_CV_2));		  // CV 2 IN
+		addInput(createInput<sts_Port>(Vec(x2, 170), module, Odyssey::IN_CV_HPF_CUTOFF)); // CV hpf
+		addInput(createInput<sts_Port>(Vec(x2, 220), module, Odyssey::WAVE_CV_LFO));
+		addInput(createInput<sts_Port>(Vec(x2, 270), module, Odyssey::IN_CV_LFO));		 // CV LFO IN
+		addInput(createInput<sts_Port>(Vec(x2, 320), module, Odyssey::IN_PORTA_ON_OFF)); // Portamento on/off
 
 		addInput(createInput<sts_Port>(Vec(x3, 20), module, Odyssey::IN_VOLT_OCTAVE_INPUT_1)); // V/O input
-		addInput(createInput<sts_Port>(Vec(x3, 70), module, Odyssey::IN_GATE_INPUT_1));		 //  Gate in
-		addInput(createInput<sts_Port>(Vec(x3, 120), module, Odyssey::IN_TRIGGER_INPUT_1));	 // Trigger in
-		addInput(createInput<sts_Port>(Vec(x3, 170), module, Odyssey::IN_VELOCITY));			 // Velocity In
-		addInput(createInput<sts_Port>(Vec(x3, 220), module, Odyssey::IN_CV_PB));				 // CV Pitch Bend
-		addInput(createInput<sts_Port>(Vec(x3, 270), module, Odyssey::IN_CV_MOD));			 // CV MOD IN
-		addInput(createInput<sts_Port>(Vec(x3, 320), module, Odyssey::IN_CV_OCTAVE));			 // CV OCTAVE IN
+		addInput(createInput<sts_Port>(Vec(x3, 70), module, Odyssey::IN_GATE_INPUT_1));		   //  Gate in
+		addInput(createInput<sts_Port>(Vec(x3, 120), module, Odyssey::IN_TRIGGER_INPUT_1));	// Trigger in
+		addInput(createInput<sts_Port>(Vec(x3, 170), module, Odyssey::IN_VELOCITY));		   // Velocity In
+		addInput(createInput<sts_Port>(Vec(x3, 220), module, Odyssey::IN_CV_PB));			   // CV Pitch Bend
+		addInput(createInput<sts_Port>(Vec(x3, 270), module, Odyssey::IN_CV_MOD));			   // CV MOD IN
+		addInput(createInput<sts_Port>(Vec(x3, 320), module, Odyssey::IN_CV_OCTAVE));		   // CV OCTAVE IN
 
 		//  3 wave CV VCO inputs
-		addInput(createInput<sts_Port>(Vec(579, 296), module, Odyssey::WAVE_CV_OSC1));			//	 Wave CV IN VCO1, 2 ,3
-		addInput(createInput<sts_Port>(Vec(606, 296), module, Odyssey::WAVE_CV_OSC2));			 // CV MOD IN
+		addInput(createInput<sts_Port>(Vec(579, 296), module, Odyssey::WAVE_CV_OSC1)); //	 Wave CV IN VCO1, 2 ,3
+		addInput(createInput<sts_Port>(Vec(606, 296), module, Odyssey::WAVE_CV_OSC2)); // CV MOD IN
 		addInput(createInput<sts_Port>(Vec(633, 296), module, Odyssey::WAVE_CV_OSC3));
 		addParam(createParam<sts_Davies15_Grey>(Vec(223, 170), module, Odyssey::WAVE_ATTEN_OSC1));
 		addParam(createParam<sts_Davies15_Grey>(Vec(336, 170), module, Odyssey::WAVE_ATTEN_OSC2));
 		addParam(createParam<sts_Davies15_Grey>(Vec(450, 170), module, Odyssey::WAVE_ATTEN_OSC3));
 		addParam(createParam<sts_Davies15_Grey>(Vec(495, 170), module, Odyssey::WAVE_ATTEN_LFO));
-				
-		/////////////////////  output for testing   far left column    //////////////////////
+
+		/////////////////////  input & output for testing   far left column    //////////////////////
 		//addOutput(createOutput<sts_Port>(Vec(35, 325), module, Odyssey::OUT_OUTPUT_1));
-        
+		//addInput(createInput<sts_Port>(Vec(35, 275), module, Odyssey::IN_INPUT_1));
+
 		//////////////////////////////////////// Add sliders Top Row   ///////////////////////
 
 		addParam(createParam<sts_SlidePotBlue>(Vec(212, 57), module, Odyssey::FREQ_PARAM_OSC1));  //, -4.0f, 3.0f, 0.0f));   //1
@@ -2267,24 +2354,24 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_SlidePotTeal>(Vec(465, 57), module, Odyssey::FINE_PARAM_OSC3));  //, -7.0, 7.0, 0.0));
 		addParam(createParam<sts_CKSS4>(Vec(453, 140), module, Odyssey::SWITCH_PARAM_OSC3_TYPE)); //, 0.0, 3.0, 0.0));  //  wave
 
-		addParam(createParam<sts_SlidePotPink>(Vec(492, 57), module, Odyssey::FREQ_PARAM_LFO));  //, -8.0, 10.0, 1.0));
+		addParam(createParam<sts_SlidePotPink>(Vec(492, 57), module, Odyssey::FREQ_PARAM_LFO)); //, -8.0, 10.0, 1.0));
 		addParam(createParam<sts_Davies15_Grey>(Vec(495, 15), module, Odyssey::LFO_FM_PARAM));
 		addParam(createParam<sts_CKSS4>(Vec(498, 140), module, Odyssey::SWITCH_PARAM_LFO_TYPE)); //, 0.0, 3.0, 0.0));   //wave
 
-		addParam(createParam<sts_SlidePotYellow>(Vec(519, 57), module, Odyssey::SLIDER_PARAM_LAG));	   //, 0.0, 0.5, 0.0));
+		addParam(createParam<sts_SlidePotYellow>(Vec(519, 57), module, Odyssey::SLIDER_PARAM_LAG));		  //, 0.0, 0.5, 0.0));
 		addParam(createParam<sts_SlidePotBlue>(Vec(551, 57), module, Odyssey::SLIDER_PARAM_SH_LVL + 0));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotWhite>(Vec(578, 57), module, Odyssey::SLIDER_PARAM_SH_LVL + 1)); //, 0.0, 1.0, 0.0));
 
-		addParam(createParam<sts_SlidePotBlack>(Vec(605, 57), module, Odyssey::FREQ_PARAM_VCF));	//, 0.f, 1.f, 1.0f));
+		addParam(createParam<sts_SlidePotBlack>(Vec(605, 57), module, Odyssey::FREQ_PARAM_VCF)); //, 0.f, 1.f, 1.0f));
 		addParam(createParam<sts_Davies15_Grey>(Vec(608, 142), module, Odyssey::FREQ_CV_PARAM_VCF));
-		addParam(createParam<sts_SlidePotBlack>(Vec(632, 57), module, Odyssey::RES_PARAM_VCF));	 //, 0.f, 1.f, 0.f));
-		addParam(createParam<sts_SlidePotBlack>(Vec(659, 57), module, Odyssey::DRIVE_PARAM_VCF));   //, 0.f, 1.f, 0.f));
+		addParam(createParam<sts_SlidePotBlack>(Vec(632, 57), module, Odyssey::RES_PARAM_VCF));   //, 0.f, 1.f, 0.f));
+		addParam(createParam<sts_SlidePotBlack>(Vec(659, 57), module, Odyssey::DRIVE_PARAM_VCF)); //, 0.f, 1.f, 0.f));
 		addParam(createParam<sts_SlidePotBlack>(Vec(686, 57), module, Odyssey::HPF_FILTER_FREQ));
 		addParam(createParam<sts_Davies15_Grey>(Vec(689, 142), module, Odyssey::HPF_FMOD_PARAM)); //, 0.0f, 1.0f, 0.0f));
 		//addParam(createParam<sts_SlidePotBlack>(Vec(713, 57), module, Odyssey::HPF_Q_PARAM)); //, -1.f, 1.f, 0.f));    BLANK
 		addParam(createParam<sts_SlidePotRed>(Vec(740, 57), module, Odyssey::SLIDER_PARAM_AR_ADSR_LVL)); //, 0.0, 1.0, 1.0));
-		addParam(createParam<sts_CKSS>(Vec(746, 153), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0)); //, 0.0, 1.0, 0.0));
-		
+		addParam(createParam<sts_CKSS>(Vec(746, 153), module, Odyssey::SWITCH_PARAM_AR_ADSR + 0));		 //, 0.0, 1.0, 0.0));
+
 		addParam(createParam<sts_SlidePotPink>(Vec(772, 57), module, Odyssey::ATTACK_PARAM_2));  //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(799, 57), module, Odyssey::DECAY_PARAM_2));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotPink>(Vec(826, 57), module, Odyssey::SUSTAIN_PARAM_2)); //, 0.0, 1.0, 1.0));
@@ -2293,18 +2380,18 @@ struct OdysseyWidget : ModuleWidget
 		//////////////////////////////////////////// Add sliders Bottom Row
 		addParam(createParam<sts_SlidePotPink>(Vec(212, 204), module, Odyssey::SLIDER_PARAM_FM_OSC1_LVL + 0));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(239, 204), module, Odyssey::SLIDER_PARAM_FM_OSC1_LVL + 1)); //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_SlidePotBlue>(Vec(266, 204), module, Odyssey::PW_PARAM_OSC1));				  //, -1.0f, 1.0f, 0.0f));
-		addParam(createParam<sts_SlidePotPink>(Vec(293, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC1_LVL));	  //, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_SlidePotBlue>(Vec(266, 204), module, Odyssey::PW_PARAM_OSC1));					 //, -1.0f, 1.0f, 0.0f));
+		addParam(createParam<sts_SlidePotPink>(Vec(293, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC1_LVL));		 //, 0.0, 1.0, 0.0));
 
 		addParam(createParam<sts_SlidePotPink>(Vec(325, 204), module, Odyssey::SLIDER_PARAM_FM_OSC2_LVL + 0));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(352, 204), module, Odyssey::SLIDER_PARAM_FM_OSC2_LVL + 1)); //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_SlidePotGreen>(Vec(379, 204), module, Odyssey::PW_PARAM_OSC2));				  //, -1.0f, 1.0f, 0.0));
-		addParam(createParam<sts_SlidePotPink>(Vec(406, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC2_LVL));	  //, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_SlidePotGreen>(Vec(379, 204), module, Odyssey::PW_PARAM_OSC2));				 //, -1.0f, 1.0f, 0.0));
+		addParam(createParam<sts_SlidePotPink>(Vec(406, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC2_LVL));		 //, 0.0, 1.0, 0.0));
 
 		addParam(createParam<sts_SlidePotPink>(Vec(438, 204), module, Odyssey::SLIDER_PARAM_FM_OSC3_LVL + 0));   //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotYellow>(Vec(465, 204), module, Odyssey::SLIDER_PARAM_FM_OSC3_LVL + 1)); //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_SlidePotTeal>(Vec(492, 204), module, Odyssey::PW_PARAM_OSC3));				  //, -1.0f, 1.0f, 0.0));
-		addParam(createParam<sts_SlidePotPink>(Vec(519, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC3_LVL));	  //, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_SlidePotTeal>(Vec(492, 204), module, Odyssey::PW_PARAM_OSC3));					 //, -1.0f, 1.0f, 0.0));
+		addParam(createParam<sts_SlidePotPink>(Vec(519, 204), module, Odyssey::SLIDER_PARAM_PWM_OSC3_LVL));		 //, 0.0, 1.0, 0.0));
 
 		addParam(createParam<sts_SlidePotWhite>(Vec(551, 204), module, Odyssey::SLIDER_PARAM_TO_AUDIO_LVL + 0)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotBlue>(Vec(578, 204), module, Odyssey::SLIDER_PARAM_TO_AUDIO_LVL + 1));  //, 0.0, 1.0, 1.0));
@@ -2315,29 +2402,29 @@ struct OdysseyWidget : ModuleWidget
 		addParam(createParam<sts_SlidePotYellow>(Vec(686, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 1)); //, 0.0, 1.0, 0.0));
 		addParam(createParam<sts_SlidePotRed>(Vec(713, 204), module, Odyssey::SLIDER_PARAM_TO_FILTER_LVL + 2));	//, 0.0, 1.0, 0.0));
 		//addParam(createParam<sts_SlidePotBlack>(Vec(740, 204), module, Odyssey::LEVEL1_PARAM_VCA)); //, 0.0f, 1.0f, 0.0f));   BLANK
-		
+
 		addParam(createParam<sts_SlidePotRed>(Vec(772, 204), module, Odyssey::ATTACK_PARAM_1));  //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(799, 204), module, Odyssey::DECAY_PARAM_1));   //, 0.0f, 1.0f, 0.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(826, 204), module, Odyssey::SUSTAIN_PARAM_1)); //, 0.0f, 1.0f, 1.0f));
 		addParam(createParam<sts_SlidePotRed>(Vec(853, 204), module, Odyssey::RELEASE_PARAM_1)); //, 0.0f, 1.0f, 0.0f));
 
 		/////////////////////////////////// Switches Bottom row   +3  -18   215  320     SWITCH_PARAM_LFO-MOD-FM_OSC1, SWITCH_PARAM_LFO-MOD-PWM_OSC1
-		addParam(createParam<sts_CKSS>(Vec(218, 302), module, Odyssey::SWITCH_PARAM_FM_OSC1 + 0));			 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(218, 302), module, Odyssey::SWITCH_PARAM_FM_OSC1 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(218, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_FM_OSC1 + 0));  //, 0.0, 1.0, 1.0));  //LFO_MOD
-		addParam(createParam<sts_CKSS>(Vec(245, 302), module, Odyssey::SWITCH_PARAM_FM_OSC1 + 1));			 //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_CKSS>(Vec(299, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC1 + 0));		 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(245, 302), module, Odyssey::SWITCH_PARAM_FM_OSC1 + 1));			//, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_CKSS>(Vec(299, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC1 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(299, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_PWM_OSC1 + 0)); //, 0.0, 1.0, 1.0));//LFO_MOD
 
-		addParam(createParam<sts_CKSS>(Vec(331, 302), module, Odyssey::SWITCH_PARAM_FM_OSC2 + 0));			 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(331, 302), module, Odyssey::SWITCH_PARAM_FM_OSC2 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(331, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_FM_OSC2 + 0));  //, 0.0, 1.0, 1.0));  //LFO_MOD
-		addParam(createParam<sts_CKSS>(Vec(358, 302), module, Odyssey::SWITCH_PARAM_FM_OSC2 + 1));			 //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_CKSS>(Vec(412, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC2 + 0));		 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(358, 302), module, Odyssey::SWITCH_PARAM_FM_OSC2 + 1));			//, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_CKSS>(Vec(412, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC2 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(412, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_PWM_OSC2 + 0)); //, 0.0, 1.0, 1.0));//LFO_MOD
 
-		addParam(createParam<sts_CKSS>(Vec(444, 302), module, Odyssey::SWITCH_PARAM_FM_OSC3 + 0));			 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(444, 302), module, Odyssey::SWITCH_PARAM_FM_OSC3 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(444, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_FM_OSC3 + 0));  //, 0.0, 1.0, 1.0));  //LFO_MOD
-		addParam(createParam<sts_CKSS>(Vec(471, 302), module, Odyssey::SWITCH_PARAM_FM_OSC3 + 1));			 //, 0.0, 1.0, 0.0));
-		addParam(createParam<sts_CKSS>(Vec(525, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC3 + 0));		 //, 0.0, 1.0, 1.0));
+		addParam(createParam<sts_CKSS>(Vec(471, 302), module, Odyssey::SWITCH_PARAM_FM_OSC3 + 1));			//, 0.0, 1.0, 0.0));
+		addParam(createParam<sts_CKSS>(Vec(525, 302), module, Odyssey::SWITCH_PARAM_PWM_OSC3 + 0));			//, 0.0, 1.0, 1.0));
 		addParam(createParam<sts_CKSS>(Vec(525, 334), module, Odyssey::SWITCH_PARAM_LFO_MOD_PWM_OSC3 + 0)); //, 0.0, 1.0, 1.0));//LFO_MOD
 
 		addParam(createParam<sts_CKSS>(Vec(525, 153), module, Odyssey::SWITCH_PARAM_SH_LFO_KEY)); //, 0.0, 1.0, 1.0));
