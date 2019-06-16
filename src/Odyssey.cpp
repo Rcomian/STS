@@ -2021,7 +2021,7 @@ struct Odyssey : Module
 
 					auto *filter = &filters[c / 4];
 
-					float_4 input = float_4::load(&AUDIO_MIX[c]);
+					float_4 input = float_4::load(&AUDIO_MIX[c]) / 5.f;
 
 					// Drive gain
 					float_4 drive = driveParam;
