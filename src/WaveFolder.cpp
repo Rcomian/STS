@@ -228,19 +228,19 @@ struct WaveFolderWidget : ModuleWidget
 		
 		
 		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::INPUT_GAIN_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(rack::Vec(x2, y), module, WaveFolder::INPUT_GAIN_PARAM)); //, 0.0, 1.0, 0.1));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::INPUT_GAIN_PARAM)); //, 0.0, 1.0, 0.1));
 
 		y += yOffset;
 		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::DC_OFFSET_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(rack::Vec(x2, y), module, WaveFolder::DC_OFFSET_PARAM)); //, -5.0, 5.0, 0.0));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::DC_OFFSET_PARAM)); //, -5.0, 5.0, 0.0));
 
 		y += yOffset;
 		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::OUTPUT_GAIN_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(rack::Vec(x2, y), module, WaveFolder::OUTPUT_GAIN_PARAM)); //, 0.0, 10.0, 1.0));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::OUTPUT_GAIN_PARAM)); //, 0.0, 10.0, 1.0));
 
 		y += yOffset;
-		addParam(createParamCentered<sts_Davies_37_Grey>(rack::Vec(x, y), module, WaveFolder::RESISTOR_PARAM)); //, 10000.f, 100000.f, 15000.f));
-		addParam(createParamCentered<sts_Davies_37_Grey>(rack::Vec(x2, y), module, WaveFolder::LOAD_RESISTOR_PARAM)); //, 1000.f, 10000.f, 7500.f));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x, y), module, WaveFolder::RESISTOR_PARAM)); //, 10000.f, 100000.f, 15000.f));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::LOAD_RESISTOR_PARAM)); //, 1000.f, 10000.f, 7500.f));
 
 		y += yOffset;
 		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::INPUT_INPUT));

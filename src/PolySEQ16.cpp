@@ -684,8 +684,8 @@ struct PolySEQ16Widget : ModuleWidget {
 		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[3]+6.9, 37), module, PolySEQ16::RUNNING_LIGHT));
 		addParam(createParam<LEDButton>(Vec(96, 33), module, PolySEQ16::RESET_PARAM));
 		addChild(createLight<MediumLight<GreenLight>>(Vec(100.4f, 37), module, PolySEQ16::RESET_LIGHT));
-		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[4]-1, 30), module, PolySEQ16::STEPS_PARAM));
-		addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[11]-1, 30), module, PolySEQ16::OCT4_PARAM));
+		addParam(createParam<sts_Davies_snap_25_Grey>(Vec(portX[4]-1, 30), module, PolySEQ16::STEPS_PARAM));
+		addParam(createParam<sts_Davies_snap_25_Grey>(Vec(portX[11]-1, 30), module, PolySEQ16::OCT4_PARAM));
 
 
 		addChild(createLight<MediumLight<GreenLight>>(Vec(portX[5]+7, 37), module, PolySEQ16::GATES_LIGHT));
@@ -738,7 +738,7 @@ struct PolySEQ16Widget : ModuleWidget {
 			addChild(createLight<SmallLight<GreenLight>>(Vec(portX[i]+8.f, 89), module, PolySEQ16::GATE_LIGHTS + i));
 
 			//////////////////////  Row 1
-			addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[i]-2, 109), module, PolySEQ16::ROW1_PARAM + i));
+			addParam(createParam<sts_Davies_snap_25_Grey>(Vec(portX[i]-2, 109), module, PolySEQ16::ROW1_PARAM + i));
 			//Gate 1 Green
 			addParam(createParam<stsLEDButton>(Vec(portX[i]-3.5, 137.9), module, PolySEQ16::GATE_PARAM_R1 + i));
 			addChild(createLight<MediumLight<GreenLight>>(Vec(portX[i]-1.4f, 140), module, PolySEQ16::GATE_LIGHTS_R1 + i));
@@ -750,7 +750,7 @@ struct PolySEQ16Widget : ModuleWidget {
             addChild(createLight<MediumLight<RedLight>>(Vec(portX[i]+7.4f, 151), module, PolySEQ16::TRIG_LIGHTS_R1 + i));
 
 			//////////////////////  Row 2
-			addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[i]-2, 169), module, PolySEQ16::ROW2_PARAM + i));
+			addParam(createParam<sts_Davies_snap_25_Red>(Vec(portX[i]-2, 169), module, PolySEQ16::ROW2_PARAM + i));
 
 			addParam(createParam<stsLEDButton>(Vec(portX[i]-3.5, 197.9), module, PolySEQ16::GATE_PARAM_R2 + i));
 			addChild(createLight<MediumLight<GreenLight>>(Vec(portX[i]-1.4f, 200), module, PolySEQ16::GATE_LIGHTS_R2 + i));
@@ -762,7 +762,7 @@ struct PolySEQ16Widget : ModuleWidget {
             addChild(createLight<MediumLight<RedLight>>(Vec(portX[i]+7.4f, 211), module, PolySEQ16::TRIG_LIGHTS_R2 + i));
 
 			//////////////////////  Row 3
-			addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[i]-2, 229), module, PolySEQ16::ROW3_PARAM + i));
+			addParam(createParam<sts_Davies_snap_25_Blue>(Vec(portX[i]-2, 229), module, PolySEQ16::ROW3_PARAM + i));
 
 			addParam(createParam<stsLEDButton>(Vec(portX[i]-3.5, 257.9), module, PolySEQ16::GATE_PARAM_R3 + i));
 			addChild(createLight<MediumLight<GreenLight>>(Vec(portX[i]-1.4f, 260), module, PolySEQ16::GATE_LIGHTS_R3 + i));
@@ -774,7 +774,7 @@ struct PolySEQ16Widget : ModuleWidget {
             addChild(createLight<MediumLight<RedLight>>(Vec(portX[i]+7.4f, 271), module, PolySEQ16::TRIG_LIGHTS_R3 + i));
 
 			//////////////////////  Row 4
-			addParam(createParam<sts_Davies_snap_37_Grey>(Vec(portX[i]-2, 289), module, PolySEQ16::ROW4_PARAM + i));
+			addParam(createParam<sts_Davies_snap_25_Teal>(Vec(portX[i]-2, 289), module, PolySEQ16::ROW4_PARAM + i));
 
 			addParam(createParam<stsLEDButton>(Vec(portX[i]-3.5, 317.9), module, PolySEQ16::GATE_PARAM_R4 + i));
 			addChild(createLight<MediumLight<GreenLight>>(Vec(portX[i]-1.4f, 320), module, PolySEQ16::GATE_LIGHTS_R4 + i));
@@ -784,7 +784,6 @@ struct PolySEQ16Widget : ModuleWidget {
 
 			addParam(createParam<stsLEDButton>(Vec(portX[i]+5.25, 328.9), module, PolySEQ16::TRIG_PARAM_R4 + i));
             addChild(createLight<MediumLight<RedLight>>(Vec(portX[i]+7.4f, 331), module, PolySEQ16::TRIG_LIGHTS_R4 + i));
-
 
 			//addParam(createParam<LEDButton>(Vec(portX[i]+2, 278-1), module, PolySEQ16::GATE_PARAM + i));
 			addOutput(createOutput<sts_Port>(Vec(portX[i]+2, 346), module, PolySEQ16::GATE_OUTPUT + i));

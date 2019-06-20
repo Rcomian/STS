@@ -13,8 +13,8 @@ extern Model *modelPolySEQ16;
 extern Model *modelRingModulator;
 extern Model *modelWaveFolder;
 extern Model *modelVU_Poly;
-//extern Model *modelLFOPoly;
-
+extern Model *modelLFOPoly;
+//extern Model *modelLFO2;
 
 //extern Model *modelMidiFile;
 //extern Model *modelMixer8;
@@ -137,6 +137,63 @@ struct sts_Davies15_Grey : app::SVGKnob {
 	}
 };
 
+struct sts_Davies20_Grey : app::SVGKnob {
+	sts_Davies20_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_20.svg")));
+	}
+};
+
+struct sts_Davies25_Grey : app::SVGKnob {
+	sts_Davies25_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_25.svg")));
+	}
+};
+
+struct sts_Davies30_Grey : app::SVGKnob {
+	sts_Davies30_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_30.svg")));
+	}
+};
+
+struct sts_Davies30_Red : app::SVGKnob {
+	sts_Davies30_Red() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_30.svg")));
+	}
+};
+
+struct sts_Davies30_Yellow : app::SVGKnob {
+	sts_Davies30_Yellow() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Yellow_30.svg")));
+	}
+};
+
+
+struct sts_Davies30_Blue : app::SVGKnob {
+	sts_Davies30_Blue() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Blue_30.svg")));
+	}
+};
+
+struct sts_Davies30_Teal : app::SVGKnob {
+	sts_Davies30_Teal() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Teal_30.svg")));
+	}
+};
+
 struct sts_Davies47_Grey : app::SVGKnob {
 	sts_Davies47_Grey() {
 		minAngle = -0.75*M_PI;
@@ -154,24 +211,59 @@ struct sts_Davies_snap_47_Grey : app::SVGKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_47.svg")));
 	}
 };
-//sts_Davies_snap_37_Grey
-struct sts_Davies_snap_37_Grey : app::SVGKnob {
-	sts_Davies_snap_37_Grey() {
+
+struct sts_Davies_snap_25_Grey : app::SVGKnob {
+	sts_Davies_snap_25_Grey() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
 		snap = true;
 		smooth = false;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_37.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_25.svg")));
 	}
 };
-struct sts_Davies_37_Grey : app::SVGKnob {
-	sts_Davies_37_Grey() {
+struct sts_Davies_snap_25_White : app::SVGKnob {
+	sts_Davies_snap_25_White() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_37.svg")));
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_White_25.svg")));
 	}
 };
-
+struct sts_Davies_snap_25_Red : app::SVGKnob {
+	sts_Davies_snap_25_Red() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_25.svg")));
+	}
+};
+struct sts_Davies_snap_25_Blue : app::SVGKnob {
+	sts_Davies_snap_25_Blue() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Blue_25.svg")));
+	}
+};
+struct sts_Davies_snap_25_Teal : app::SVGKnob {
+	sts_Davies_snap_25_Teal() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Teal_25.svg")));
+	}
+};
+struct sts_Davies_25_Grey : app::SVGKnob {
+	sts_Davies_25_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_25.svg")));
+	}
+};
 
 struct sts_BigSnapKnob : app::SVGKnob
 {

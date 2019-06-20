@@ -1013,13 +1013,13 @@ struct Odyssey : Module
 		configParam(SLIDER_PARAM_SH_LVL + 0, 0.f, 1.f, 0.f, "S & H Mixer 1 ");
 		;
 		configParam(SLIDER_PARAM_SH_LVL + 1, 0.f, 1.f, 0.f, "S & H Mixer 2 ");
-		configParam(FREQ_PARAM_VCF, 0.f, 1.f, 1.f, "VCF Cutoff Frequency", " Hz", std::pow(2, 10.f), dsp::FREQ_C4 / std::pow(2, 5.f));
+		configParam(FREQ_PARAM_VCF, 0.f, 1.f, 1.f, "VCF Cutoff Frequency");
 		configParam(RES_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Resonance", "%", 0.f, 100.f);
 		configParam(DRIVE_PARAM_VCF, 0.f, 1.f, 0.f, "VCF Drive ");
 		configParam(FREQ_CV_PARAM_VCF, -1.f, 1.f, 0.f, "VCF Cutoff Frequency Modulation", "%", 0.f, 100.f);
 
 		//configParam(HPF_Q_PARAM, 0.f, 1.f, 0.f, "HPF Resonance ");
-		configParam(HPF_FILTER_FREQ, 0.0f, 1.0f, 0.0f, "HPF Cutoff Frequency ", " Hz", std::pow(2, 10.f), dsp::FREQ_C4 / std::pow(2, 5.f)); //, " ",0.0, 1.0, 0.0);
+		configParam(HPF_FILTER_FREQ, 0.0f, 1.0f, 0.0f, "HPF Cutoff Frequency "); //, " ",0.0, 1.0, 0.0);
 		configParam(HPF_FMOD_PARAM, -1.f, 1.f, 0.f, "HPF Cutoff Frequency Modulation", "%", 0.f, 100.f);									//, " ",0.0, 1.0, 0.0);
 
 		//configParam(LEVEL1_PARAM_VCA, 0.0f, 1.0f, 0.0f, "VCA Level NO ADSR", "%", 0, 100);
@@ -2040,8 +2040,9 @@ struct Odyssey : Module
 
 					// Get pitch
 					//float_4 pitch = freqParam + fineParam + inputs[FREQ_PARAM_VCF].getPolyVoltageSimd<float_4>(c) * freqCvParam;
-
-					float_4 pitch = (freqParam + fineParam + (FILTER_MIX[c] + FILTER_MIX[c+1] + FILTER_MIX[c+2] + FILTER_MIX[c+3]) * freqCvParam); 
+					float_4 pitch = float_4::load(&FILTER_MIX[c])  * freqCvParam;
+					pitch += freqParam + fineParam;
+					//float_4 pitch += (freqParam + fineParam + (FILTER_MIX[c] + FILTER_MIX[c+1] + FILTER_MIX[c+2] + FILTER_MIX[c+3]) * freqCvParam); 
 
 					// Set cutoff
 					float_4 cutoff = dsp::FREQ_C4 * simd::pow(2.f, pitch);

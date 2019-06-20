@@ -250,23 +250,23 @@ SvgPanel *goldPanel;
 		float y = 75;
 		float yOffset = 67;
 		addInput(createInputCentered<sts_Port>(Vec(x, y), module, RingModulator::INPUT_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x2, y), module, RingModulator::INPUT_LEVEL_PARAM));	//, 0.0, 1.0, 1.0));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x2, y), module, RingModulator::INPUT_LEVEL_PARAM));	//, 0.0, 1.0, 1.0));
 		addParam(createParamCentered<CKSSThree>(Vec(x3, y), module, RingModulator::INPUT_POLARITY_PARAM)); //, 0.0, 2.0, 1.0));
 
 		y += yOffset;
 		addInput(createInputCentered<sts_Port>(Vec(x, y), module, RingModulator::CARRIER_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x2, y), module, RingModulator::CARRIER_LEVEL_PARAM));	//, 0.0, 1.0, 1.0));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x2, y), module, RingModulator::CARRIER_LEVEL_PARAM));	//, 0.0, 1.0, 1.0));
 		addParam(createParamCentered<CKSSThree>(Vec(x3, y), module, RingModulator::CARRIER_POLARITY_PARAM)); //, 0.0, 2.0, 1.0));
 
 		y += yOffset;
 		addInput(createInputCentered<sts_Port>(Vec(x, y), module, RingModulator::CARRIER_OFFSET_INPUT));
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x2, y), module, RingModulator::CARRIER_OFFSET_PARAM)); //, -g_controlPeakVoltage, g_controlPeakVoltage, 0.0));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x2, y), module, RingModulator::CARRIER_OFFSET_PARAM)); //, -g_controlPeakVoltage, g_controlPeakVoltage, 0.0));
 		addOutput(createOutputCentered<sts_Port>(Vec(x3, y), module, RingModulator::RING_OUTPUT));
 
 		y += yOffset;
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x, y), module, RingModulator::DIODE_VB_PARAM)); //, std::numeric_limits<float>::epsilon(), g_controlPeakVoltage, 0.2));
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x2, y), module, RingModulator::DIODE_VL_MINUS_VB_PARAM)); //, std::numeric_limits<float>::epsilon(), g_controlPeakVoltage, 0.5));
-		addParam(createParamCentered<sts_Davies_37_Grey>(Vec(x3, y), module, RingModulator::DIODE_H_PARAM)); //, 0.0, 1.0, 0.9));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x, y), module, RingModulator::DIODE_VB_PARAM)); //, std::numeric_limits<float>::epsilon(), g_controlPeakVoltage, 0.2));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x2, y), module, RingModulator::DIODE_VL_MINUS_VB_PARAM)); //, std::numeric_limits<float>::epsilon(), g_controlPeakVoltage, 0.5));
+		addParam(createParamCentered<sts_Davies_25_Grey>(Vec(x3, y), module, RingModulator::DIODE_H_PARAM)); //, 0.0, 1.0, 0.9));
 		
 		y += yOffset;
 		//x = 27;
