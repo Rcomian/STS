@@ -97,9 +97,11 @@ struct LFOPoly : Module {
 		NUM_OUTPUTS
 	};
 	enum LightIds {
-		ENUMS(PHASE_LIGHT, 3),
-        ENUMS(PHASE_POS_LIGHT, 16),
-        ENUMS(PHASE_NEG_LIGHT, 16),
+		//ENUMS(PHASE_LIGHT, 3),
+        //ENUMS(PHASE_LIGHT1, 3),
+        //ENUMS(PHASE_POS_LIGHT, 16),
+        //ENUMS(PHASE_NEG_LIGHT, 16),
+        ENUMS(PHASE_LIGHTS, 16 * 2),
 		NUM_LIGHTS
 	};
 
@@ -235,19 +237,33 @@ struct LFOPoly : Module {
 
 		outputs[POLY_OUTPUT].setChannels(channels);
 
-		// Light
-         
+		
+		if (lightDivider.process()) {
+			//lastChannel = inputs[POLY_INPUT].getChannels();
+			float deltaTime = args.sampleTime * lightDivider.getDivision();
+
+			for (int c = 0; c < 16; c++) 
+            {
+				float v = outputs[POLY_OUTPUT].getVoltage(c) / 10.f;
+				lights[PHASE_LIGHTS + c * 2 + 0].setSmoothBrightness(v, deltaTime);
+				lights[PHASE_LIGHTS + c * 2 + 1].setSmoothBrightness(-v, deltaTime);
+			}
+		}
+	}
+        // Light
+        /*  
         if (lightDivider.process()) 
         {
         for (int i = 0; i < channels; ++i)
             {
             float lightValue = oscillators[i].light().s[i];
-            //lights[PHASE_POS_LIGHT + i].setSmoothBrightness(oscillator[i].light(), deltaTime);
+            lights[PHASE_POS_LIGHT + i].setSmoothBrightness(oscillator[i].light(), deltaTime);
             //lights[PHASE_NEG_LIGHT + i].setSmoothBrightness(-oscillator[i].light(), deltaTime);
             lights[PHASE_POS_LIGHT + i].setSmoothBrightness(lightValue, args.sampleTime);
             lights[PHASE_NEG_LIGHT + i].setSmoothBrightness(-lightValue, args.sampleTime);
             }
         }
+        */
          /* 
 		if (lightDivider.process()) 
         {
@@ -265,7 +281,7 @@ struct LFOPoly : Module {
 			}
         }
         */
-	}
+	};
 
 
 /** Resets performance state */
@@ -418,7 +434,7 @@ struct LFOPolyWidget : ModuleWidget
         
         for (int i = 0; i < 8; ++i)
         {
-            addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(portY + i * y1, portx[0]), module, LFOPoly::PHASE_POS_LIGHT + i));
+            addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(portY + i * y1, portx[0]), module, LFOPoly::PHASE_LIGHT + i *2));
             //addChild(createLightCentered<SmallLight<RedGreenBlueLight>>(Vec(portY + i * y1, portx[0]), module, LFOPoly::PHASE_LIGHT));
             addParam(createParamCentered<sts_Davies30_Red>(Vec(portY + i * y1, portx[2]), module, LFOPoly::FREQ_PARAM + i));
             addParam(createParamCentered<sts_Davies30_Blue>(Vec(portY + i * y1, portx[3]), module, LFOPoly::WAVE_PARAM + i));
@@ -426,7 +442,7 @@ struct LFOPolyWidget : ModuleWidget
         }
         for (int i = 8; i < 16; ++i)
         {
-            addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(portY + (i - 8) * y1, portx[0] + x2), module, LFOPoly::PHASE_POS_LIGHT + i));
+            addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(portY + (i - 8) * y1, portx[0] + x2), module, LFOPoly::PHASE_LIGHT + i *2));
             addParam(createParamCentered<sts_Davies30_Red>(Vec(portY + (i - 8) * y1, portx[2] + x2), module, LFOPoly::FREQ_PARAM + i));
             addParam(createParamCentered<sts_Davies30_Blue>(Vec(portY + (i - 8) * y1, portx[3] + x2), module, LFOPoly::WAVE_PARAM + i));
             addParam(createParamCentered<sts_Davies30_Teal>(Vec(portY + (i - 8) * y1, portx[4] + x2), module, LFOPoly::PW_PARAM + i));
