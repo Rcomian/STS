@@ -2034,7 +2034,7 @@ struct Odyssey : Module
 
 					// Set resonance
 					//float_4 resonance = resParam + inputs[RES_PARAM_VCF].getPolyVoltageSimd<float_4>(c) / 10.f;
-					float_4 resonance = resParam / 10.f;
+					float_4 resonance = resParam ;    
 					resonance = clamp(resonance, 0.f, 1.f);
 					filter->resonance = simd::pow(resonance, 2) * 10.f;
 
