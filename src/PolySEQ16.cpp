@@ -130,10 +130,10 @@ struct PolySEQ16 : Module {
 		configParam(STEPS_PARAM, 1.f, 16.f, 16.f, "Steps ");
 		configParam(OCT4_PARAM, -2.f, 2.f, 0.f, "Row 4 Octave ");
 
-		configParam(ROW_ON_PARAM + 0, 0.f, 1.f, 0.f);
-		configParam(ROW_ON_PARAM + 1, 0.f, 1.f, 0.f);
-		configParam(ROW_ON_PARAM + 2, 0.f, 1.f, 0.f);
-		configParam(ROW_ON_PARAM + 3, 0.f, 1.f, 0.f);
+		configParam(ROW_ON_PARAM + 0, 0.f, 1.f, 1.f);
+		configParam(ROW_ON_PARAM + 1, 0.f, 1.f, 1.f);
+		configParam(ROW_ON_PARAM + 2, 0.f, 1.f, 1.f);
+		configParam(ROW_ON_PARAM + 3, 0.f, 1.f, 1.f);
 
 		for (int i = 0; i < 16; i++) 
 		{
@@ -714,23 +714,23 @@ struct PolySEQ16Widget : ModuleWidget {
 
 		////  Right side channel stuff
 		//////////////////////  Row 1
-		addParam(createParam<stsLEDButton1>(Vec(618, 129.9), module, PolySEQ16::ROW_ON_PARAM + 0));     
-		addChild(createLight<MediumLight<YellowLight>>(Vec(620, 132), module, PolySEQ16::ROW_ON_LIGHTS + 0));
+		addParam(createParamCentered<stsLEDButton1>(Vec(624, 125), module, PolySEQ16::ROW_ON_PARAM + 0));     
+		addChild(createLightCentered<MediumLight<YellowLight>>(Vec(624, 125 ), module, PolySEQ16::ROW_ON_LIGHTS + 0));
 		addInput(createInputCentered<sts_Port>(Vec(624, 155), module, PolySEQ16::ROW_ON_CV + 0));
 
 		//////////////////////  Row 2
-		addParam(createParam<stsLEDButton1>(Vec(618, 189.9), module, PolySEQ16::ROW_ON_PARAM + 1));
-		addChild(createLight<MediumLight<YellowLight>>(Vec(620, 192), module, PolySEQ16::ROW_ON_LIGHTS + 1));
+		addParam(createParamCentered<stsLEDButton1>(Vec(624, 190), module, PolySEQ16::ROW_ON_PARAM + 1));
+		addChild(createLightCentered<MediumLight<YellowLight>>(Vec(624, 190), module, PolySEQ16::ROW_ON_LIGHTS + 1));
 		addInput(createInputCentered<sts_Port>(Vec(624, 215), module, PolySEQ16::ROW_ON_CV + 1));
 		
 		//////////////////////  Row 3
-		addParam(createParam<stsLEDButton1>(Vec(618, 249.9), module, PolySEQ16::ROW_ON_PARAM + 2));
-		addChild(createLight<MediumLight<YellowLight>>(Vec(620, 252), module, PolySEQ16::ROW_ON_LIGHTS + 2));
+		addParam(createParamCentered<stsLEDButton1>(Vec(624, 250), module, PolySEQ16::ROW_ON_PARAM + 2));
+		addChild(createLightCentered<MediumLight<YellowLight>>(Vec(624, 250), module, PolySEQ16::ROW_ON_LIGHTS + 2));
 		addInput(createInputCentered<sts_Port>(Vec(624,275), module, PolySEQ16::ROW_ON_CV + 2));
 		
 		//////////////////////  Row 4
-		addParam(createParam<stsLEDButton1>(Vec(618, 309.9), module, PolySEQ16::ROW_ON_PARAM + 3));
-		addChild(createLight<MediumLight<YellowLight>>(Vec(620, 312), module, PolySEQ16::ROW_ON_LIGHTS + 3));
+		addParam(createParamCentered<stsLEDButton1>(Vec(624, 310), module, PolySEQ16::ROW_ON_PARAM + 3));
+		addChild(createLightCentered<MediumLight<YellowLight>>(Vec(624, 310), module, PolySEQ16::ROW_ON_LIGHTS + 3));
 		addInput(createInputCentered<sts_Port>(Vec(624, 335), module, PolySEQ16::ROW_ON_CV + 3));
 
 		for (int i = 0; i < 16; i++) 
