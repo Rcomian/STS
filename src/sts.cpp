@@ -15,7 +15,7 @@ void init(rack::Plugin *p)
 	p->addModel(modelWaveFolder);
 	p->addModel(modelVU_Poly);
 	p->addModel(modelLFOPoly);
-	//p->addModel(modelLFO2);
+	//p->addModel(model_8vertplus);
 
 	//p->addModel(modelMidiFile);
 	//p->addModel(modelMixer8);

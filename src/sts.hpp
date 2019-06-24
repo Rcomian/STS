@@ -14,7 +14,7 @@ extern Model *modelRingModulator;
 extern Model *modelWaveFolder;
 extern Model *modelVU_Poly;
 extern Model *modelLFOPoly;
-//extern Model *modelLFO2;
+//extern Model *model_8vertplus;
 
 //extern Model *modelMidiFile;
 //extern Model *modelMixer8;
