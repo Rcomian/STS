@@ -1,5 +1,9 @@
 
-Final V1 candidate..
+V1.0.2
+Added LFOPoly
+Added label for channel on/off SEQ16 (ooops)
+Lowered CPU use on Oddy Poly
+
 
 Here is the V1 list so far. Documentation to follow.....
 
@@ -14,6 +18,10 @@ Poly Sequencer 16: 4 channel polyphonic 16 step sequencer with 2 gates, 1 trigge
 Ring Modulator: Orphaned module from JE ported to V1. Will be POLY at a later date.
 
 Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
+
+LFOPoly:  16 channel LFO for polyphonic modulation.   Independent Frequency, Waveshape, ans Pule Width per LFO. Polyphonic CV inputs for Frequency, Waveshape, ans Pule Width.
+
+
 
 VCV Rack modules for V6.2.
 
