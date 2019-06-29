@@ -313,7 +313,7 @@ struct ChannelItem : MenuItem
             if (channels == 1)
                 item->text = "Monophonic";
             else
-                item->text = string::f("%d", channels);
+                item->text = rack::string::f("%d", channels);
             item->rightText = CHECKMARK(module->channels == channels);
             item->module = module;
             item->channels = channels;
@@ -376,7 +376,7 @@ struct LFOPolyWidget : ModuleWidget
 
         ChannelItem *channelItem = new ChannelItem;
         channelItem->text = "Polyphony channels";
-        channelItem->rightText = string::f("%d", module->channels) + " " + RIGHT_ARROW;
+        channelItem->rightText = rack::string::f("%d", module->channels) + " " + RIGHT_ARROW;
         channelItem->module = module;
         menu->addChild(channelItem);
     }
