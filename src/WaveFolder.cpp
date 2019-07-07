@@ -33,10 +33,11 @@ struct WaveFolder : Module
 	enum InputIds
 	{
 		INPUT_INPUT = 0,
-		INPUT_GAIN_INPUT,
-		DC_OFFSET_INPUT,
-
-		OUTPUT_GAIN_INPUT,
+		INPUT_GAIN_CV,
+		DC_OFFSET_CV,
+		RESISTOR_CV,
+		LOAD_RESISTOR_CV,
+		OUTPUT_GAIN_CV,
 
 		NUM_INPUTS
 	};
@@ -59,7 +60,6 @@ struct WaveFolder : Module
 	{
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
-		//configParam(CLOCK_PARAM, -2.f, 6.f, 2.f, "Clock Speed  ");
 		configParam(INPUT_GAIN_PARAM, 0.0, 1.0, 0.1);
 		configParam(DC_OFFSET_PARAM, -5.0, 5.0, 0.0);
 		configParam(OUTPUT_GAIN_PARAM, 0.0, 10.0, 1.0);
@@ -97,13 +97,13 @@ struct WaveFolder : Module
 
 	inline void updateResistors()
 	{
-		if (meta::updateIfDifferent(m_resistor, params[RESISTOR_PARAM].getValue()))
+		if (meta::updateIfDifferent(m_resistor, (params[RESISTOR_PARAM].getValue() + inputs[RESISTOR_CV].getVoltage()*1000) ))
 		{
 			m_alpha = m_loadResistor2 / m_resistor;
 			m_beta = (m_resistor + m_loadResistor2) / (m_thermalVoltage * m_resistor);
 		}
 
-		if (meta::updateIfDifferent(m_loadResistor, params[LOAD_RESISTOR_PARAM].getValue()))
+		if (meta::updateIfDifferent(m_loadResistor, (params[LOAD_RESISTOR_PARAM].getValue() + inputs[LOAD_RESISTOR_CV].getVoltage()*100) ))
 		{
 			m_loadResistor2 = m_loadResistor * 2.f;
 			m_alpha = m_loadResistor2 / m_resistor;
@@ -114,7 +114,7 @@ struct WaveFolder : Module
 
 	inline float getGainedOffsetedInputValue()
 	{
-		return (inputs[INPUT_INPUT].getVoltageSum() * meta::clamp(params[INPUT_GAIN_PARAM].getValue() + inputs[INPUT_GAIN_INPUT].getVoltage() / g_audioPeakVoltage, 0.f, 1.f)) + (params[DC_OFFSET_PARAM].getValue() + inputs[DC_OFFSET_INPUT].getVoltage()) / 2.f;
+		return (inputs[INPUT_INPUT].getVoltageSum() * meta::clamp(params[INPUT_GAIN_PARAM].getValue() + inputs[INPUT_GAIN_CV].getVoltage() / g_audioPeakVoltage, 0.f, 1.f)) + (params[DC_OFFSET_PARAM].getValue() + inputs[DC_OFFSET_CV].getVoltage()) / 2.f;
 	}
 
 	inline float waveFolder(float in)
@@ -127,10 +127,10 @@ struct WaveFolder : Module
 	{
 		if (!needToStep())
 			return;
-	
+
 		updateResistors();
 
-		outputs[OUTPUT_OUTPUT].setVoltage(std::tanh(waveFolder(getGainedOffsetedInputValue())) * meta::clamp(params[OUTPUT_GAIN_PARAM].getValue() + inputs[OUTPUT_GAIN_INPUT].getVoltage(), 0.f, 10.f));
+		outputs[OUTPUT_OUTPUT].setVoltage(std::tanh(waveFolder(getGainedOffsetedInputValue())) * meta::clamp(params[OUTPUT_GAIN_PARAM].getValue() + inputs[OUTPUT_GAIN_CV].getVoltage(), 0.f, 10.f));
 	}
 
 private:
@@ -224,22 +224,25 @@ struct WaveFolderWidget : ModuleWidget
 		float x = 27;
 		float x2 = x + 50;
 		float y = 70;
-		float yOffset = 65;
-		
-		
-		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::INPUT_GAIN_INPUT));
+		float yOffset = 52;
+
+		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::INPUT_GAIN_CV));
 		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::INPUT_GAIN_PARAM)); //, 0.0, 1.0, 0.1));
 
 		y += yOffset;
-		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::DC_OFFSET_INPUT));
+		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::DC_OFFSET_CV));
 		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::DC_OFFSET_PARAM)); //, -5.0, 5.0, 0.0));
 
 		y += yOffset;
-		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::OUTPUT_GAIN_INPUT));
+		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::OUTPUT_GAIN_CV));
 		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::OUTPUT_GAIN_PARAM)); //, 0.0, 10.0, 1.0));
 
 		y += yOffset;
-		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x, y), module, WaveFolder::RESISTOR_PARAM)); //, 10000.f, 100000.f, 15000.f));
+		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::RESISTOR_CV));
+		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::RESISTOR_PARAM)); //, 10000.f, 100000.f, 15000.f));
+
+		y += yOffset;
+		addInput(createInputCentered<sts_Port>(rack::Vec(x, y), module, WaveFolder::LOAD_RESISTOR_CV));
 		addParam(createParamCentered<sts_Davies_25_Grey>(rack::Vec(x2, y), module, WaveFolder::LOAD_RESISTOR_PARAM)); //, 1000.f, 10000.f, 7500.f));
 
 		y += yOffset;

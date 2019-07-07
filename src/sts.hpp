@@ -14,8 +14,7 @@ extern Model *modelRingModulator;
 extern Model *modelWaveFolder;
 extern Model *modelVU_Poly;
 extern Model *modelLFOPoly;
-//extern Model *model_8vertplus;
-
+extern Model *modelChords;
 //extern Model *modelMidiFile;
 //extern Model *modelMixer8;
 //extern Model *modelSEQEXP;
@@ -23,6 +22,12 @@ extern Model *modelLFOPoly;
 //extern Model *modelOdyssey;
 
 #define MAX_POLY_CHANNELS 16
+#define GTX__N 6
+#define MAX_POLY_CHANNELS 16
+#define GTX__2PI 6.283185307179586476925
+#define GTX__IO_RADIUS 26.0
+#define GTX__SAVE_SVG 0
+#define GTX__WIDGET()
 
 static constexpr float g_audioPeakVoltage = 10.f;
 static constexpr float g_controlPeakVoltage = 5.f;
@@ -62,33 +67,6 @@ static const int offsetTrimpot = 3;//does both h and v
 static const float blurRadiusRatio = 0.06f;
 
 
-
-
-/*
-////////////////////////
-//   IM widgets   //
-////////////////////////
-
-
-
-
-// Other functions
-
-inline bool calcWarningFlash(long count, long countInit) {
-	if ( (count > (countInit * 2l / 4l) && count < (countInit * 3l / 4l)) || (count < (countInit * 1l / 4l)) )
-		return false;
-	return true;
-}	
-
-NVGcolor prepareDisplay(NVGcontext *vg, Rect *box, int fontSize);
-
-void printNote(float cvVal, char* text, bool sharp);
-
-int moveIndex(int index, int indexNext, int numSteps);
-
-};
-*/
-
 struct stsBigPushButton : app::SVGSwitch 
 {
 	stsBigPushButton() 
@@ -99,6 +77,141 @@ struct stsBigPushButton : app::SVGSwitch
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dark/comp/CKD6b_1.svg")));	
 	}
 };
+//============================================================================================================
+//! Gratrix Widgets
+
+struct PortInMed : SVGPort
+{
+	PortInMed()
+	{
+		//background->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/PortInMedium.svg"));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/PortInMedium.svg")));
+		//background->wrap();
+		//box.size = background->box.size;
+	}
+
+	static Vec size() { return Vec(25.0, 25.0); } // Copied from SVG so no need to pre-load.
+	static Vec pos() { return Vec(12.5, 12.5); }  // Copied from SVG so no need to pre-load.
+};
+
+struct PortOutMed : SVGPort
+{
+	PortOutMed()
+	{
+		//background->svg = APP->window->loadSvg(asset::plugin(pluginInstance, "res/components/PortOutMedium.svg"));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/PortOutMedium.svg")));
+		//background->wrap();
+		//box.size = background->box.size;
+	}
+
+	static Vec size() { return Vec(25.0, 25.0); } // Copied from SVG so no need to pre-load.
+	static Vec pos() { return Vec(12.5, 12.5); }  // Copied from SVG so no need to pre-load.
+};
+
+struct KnobSnapSml : RoundKnob
+{
+	KnobSnapSml()
+	{
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/KnobSnapSmall.svg")));
+		//box.size = Vec(28, 28);
+		snap = true;
+	}
+
+	static Vec size() { return Vec(28.0, 28.0); }  // Copied from SVG so no need to pre-load.
+	static Vec pos()  { return Vec(14.0, 14.0); }  // Copied from SVG so no need to pre-load.
+};
+//! \brief Create output function that creates the UI component centered.
+
+template <class Port>
+Port *createInputGTX(Vec pos, Module *module, int outputId)
+{
+	return createInput<Port>(pos.minus(Port::pos()), module, outputId);
+}
+
+//============================================================================================================
+//! \brief Create output function that creates the UI component centered.
+
+template <class Port>
+Port *createOutputGTX(Vec pos, Module *module, int outputId)
+{
+	return createOutput<Port>(pos.minus(Port::pos()), module, outputId);
+}
+
+//============================================================================================================
+//! \brief Create param function that creates the UI component centered.
+
+template <class ParamWidget>
+ParamWidget *createParamGTX(Vec pos, Module *module, int paramId)     //, float minValue, float maxValue, float defaultValue)
+{
+	return createParam<ParamWidget>(pos.minus(ParamWidget::pos()), module, paramId);    //, minValue, maxValue, defaultValue);
+}
+
+//============================================================================================================
+
+
+//! \brief ...
+
+inline double dx(double i, std::size_t n) { return  std::sin(GTX__2PI * static_cast<double>(i) / static_cast<double>(n)); }
+inline double dy(double i, std::size_t n) { return -std::cos(GTX__2PI * static_cast<double>(i) / static_cast<double>(n)); }
+inline double dx(double i               ) { return dx(i, GTX__N); }
+inline double dy(double i               ) { return dy(i, GTX__N); }
+
+inline int    gx(double i) { return static_cast<int>(std::floor(0.5 + ((i+0.5) *  90))); }
+inline int    gy(double i) { return static_cast<int>(std::floor(8.5 + ((i+1.0) * 102))); }
+inline int    fx(double i) { return gx(i); }
+inline int    fy(double i) { return gy(i - 0.1); }
+
+inline double rad_n_b() { return 27;    }
+inline double rad_n_m() { return 18;    }
+inline double rad_n_s() { return 14;    }
+inline double rad_l_m() { return  4.75; }
+inline double rad_l_s() { return  3.25; }
+inline double rad_but() { return  9;    }
+inline double rad_scr() { return  8;    }
+inline double rad_prt() { return 12.5;  }
+
+inline Vec    tog(double x, double y) { return Vec(x - 7, y - 10); }
+inline Vec    n_b(double x, double y) { return Vec(x - rad_n_b(), y - rad_n_b()); }
+inline Vec    n_m(double x, double y) { return Vec(x - rad_n_m(), y - rad_n_m()); }
+inline Vec    n_s(double x, double y) { return Vec(x - rad_n_s(), y - rad_n_s()); }
+inline Vec    l_m(double x, double y) { return Vec(x - rad_l_m(), y - rad_l_m()); }
+inline Vec    l_s(double x, double y) { return Vec(x - rad_l_s(), y - rad_l_s()); }
+inline Vec    but(double x, double y) { return Vec(x - rad_but(), y - rad_but()); }
+inline Vec    scr(double x, double y) { return Vec(x - rad_scr(), y - rad_scr()); }
+inline Vec    prt(double x, double y) { return Vec(x - rad_prt(), y - rad_prt()); }
+
+inline Vec    tog(const Vec &a)       { return tog(a.x, a.y); }
+inline Vec    n_b(const Vec &a)       { return n_b(a.x, a.y); }
+inline Vec    n_m(const Vec &a)       { return n_m(a.x, a.y); }
+inline Vec    n_s(const Vec &a)       { return n_s(a.x, a.y); }
+inline Vec    l_m(const Vec &a)       { return l_m(a.x, a.y); }
+inline Vec    l_s(const Vec &a)       { return l_s(a.x, a.y); }
+inline Vec    but(const Vec &a)       { return but(a.x, a.y); }
+inline Vec    scr(const Vec &a)       { return scr(a.x, a.y); }
+inline Vec    prt(const Vec &a)       { return prt(a.x, a.y); }
+
+inline double px(          std::size_t i) { return GTX__IO_RADIUS * dx(i); }
+inline double py(          std::size_t i) { return GTX__IO_RADIUS * dy(i); }
+inline double px(double j, std::size_t i) { return gx(j) + px(i); }
+inline double py(double j, std::size_t i) { return gy(j) + py(i); }
+/*
+void debug_out(vector<uint8_t>::const_iterator& iter, int lastSuccess = 0) const 
+	{
+        std::string s;
+        auto start = std::max(&midi.front() + lastSuccess, &*iter - 25);
+        auto end = std::min(&midi.back(), &*iter + 5);
+        const char hex[] = "0123456789ABCDEF";
+        for (auto i = start; i <= end; ++i) {
+            if (i == &*iter) s += "[";
+            s += "0x";
+            s += hex[*i >> 4];
+            s += hex[*i & 0xf];
+            if (i == &*iter) s += "]";
+            s += ", ";
+        }
+        DEBUG("%s", s.c_str());
+    }
+*/
 ////////////////////////
 //      Knobs         //
 ////////////////////////
@@ -221,6 +334,16 @@ struct sts_Davies_snap_25_Grey : app::SVGKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_25.svg")));
 	}
 };
+
+struct sts_Davies_snap_35_Grey : app::SVGKnob {
+	sts_Davies_snap_35_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_35.svg")));
+	}
+};
 struct sts_Davies_snap_25_White : app::SVGKnob {
 	sts_Davies_snap_25_White() {
 		minAngle = -0.75*M_PI;
@@ -230,13 +353,36 @@ struct sts_Davies_snap_25_White : app::SVGKnob {
 		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_White_25.svg")));
 	}
 };
+struct sts_Davies_snap_25_Yellow : app::SVGKnob {
+	sts_Davies_snap_25_Yellow() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Yellow_23.svg")));
+	}
+};
+struct sts_Davies_25_Yellow : app::SVGKnob {
+	sts_Davies_25_Yellow() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Yellow_23.svg")));
+	}
+};
 struct sts_Davies_snap_25_Red : app::SVGKnob {
 	sts_Davies_snap_25_Red() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
 		snap = true;
 		smooth = false;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_25.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_23.svg")));
+	}
+};
+struct sts_Davies_25_Red : app::SVGKnob {
+	sts_Davies_25_Red() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_23.svg")));
 	}
 };
 struct sts_Davies_snap_25_Blue : app::SVGKnob {
@@ -245,7 +391,14 @@ struct sts_Davies_snap_25_Blue : app::SVGKnob {
 		maxAngle = 0.75*M_PI;
 		snap = true;
 		smooth = false;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Blue_25.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Blue_23.svg")));
+	}
+};
+struct sts_Davies_25_Blue : app::SVGKnob {
+	sts_Davies_25_Blue() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_23.svg")));
 	}
 };
 struct sts_Davies_snap_25_Teal : app::SVGKnob {
@@ -254,7 +407,14 @@ struct sts_Davies_snap_25_Teal : app::SVGKnob {
 		maxAngle = 0.75*M_PI;
 		snap = true;
 		smooth = false;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Teal_25.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Teal_23.svg")));
+	}
+};
+struct sts_Davies_25_Teal : app::SVGKnob {
+	sts_Davies_25_Teal() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Teal_23.svg")));
 	}
 };
 struct sts_Davies_25_Grey : app::SVGKnob {
@@ -282,6 +442,12 @@ struct stsLEDButton : app::SvgSwitch {
 	stsLEDButton() {
 		momentary = true;
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/stsLEDButton.svg")));
+	}
+};
+struct stsLEDButtonSmall : app::SvgSwitch {
+	stsLEDButtonSmall() {
+		momentary = true;
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance,"res/stsLEDButtonSmall.svg")));
 	}
 };
 struct stsLEDButton1 : app::SvgSwitch {

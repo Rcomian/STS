@@ -35,7 +35,7 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="17.172593"
-     inkscape:cx="3.8813505"
+     inkscape:cx="3.0078656"
      inkscape:cy="13.168696"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -49,7 +49,8 @@
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     units="px" />
+     units="px"
+     inkscape:showpageshadow="false" />
   <metadata
      id="metadata16905">
     <rdf:RDF>
@@ -66,10 +67,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-230.09591,-126.14322)">
+     transform="translate(-230.09591,-126.14321)">
     <g
        id="g3144"
-       transform="matrix(0.83824354,0,0,0.83824354,37.2195,21.474438)">
+       transform="matrix(0.83035195,0,0,0.83035195,39.050732,22.506702)">
       <g
          transform="matrix(0.21993272,0,0,-0.21959196,238.01349,128.80496)"
          id="g6443"
