@@ -670,6 +670,7 @@ struct PolySEQ16 : Module
 		{
 			if (!snap)
 			{
+				outputs[ROW1_OUTPUT].setVoltage((params[ROW1_PARAM + index].getValue() + 0.1) / 12);
 				outVoct[0] = (params[ROW1_PARAM + index].getValue() + 0.1) / 12;
 			}
 			else
@@ -684,17 +685,18 @@ struct PolySEQ16 : Module
 		outTrig[0] = (gateIn && trigs_R1[index] && params[ROW_ON_PARAM + 0].getValue() + inputs[ROW_ON_CV + 0].getVoltage() && pulse) ? 10.f : 0.f;
 
 		// Row2
-		if (params[ROW_ON_PARAM + 0].getValue())
+		if (params[ROW_ON_PARAM + 1].getValue())
 		{
 			if (!snap)
 			{
-				outVoct[0] = (params[ROW1_PARAM + index2].getValue() + 0.1) / 12;
+				outputs[ROW2_OUTPUT].setVoltage((params[ROW2_PARAM + index2].getValue() + 0.1) / 12);
+				outVoct[1] = (params[ROW2_PARAM + index2].getValue() + 0.1) / 12;
 			}
 			else
 			{
-				rowSetting = round(params[ROW1_PARAM + index2].getValue() + 0.1);
-				outputs[ROW1_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
-				outVoct[0] = chromaticScale[rowSetting] / 12.0f;
+				rowSetting = round(params[ROW2_PARAM + index2].getValue() + 0.1);
+				outputs[ROW2_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
+				outVoct[1] = chromaticScale[rowSetting] / 12.0f;
 			}
 		}
 		outGate[1] = (gateIn && gates_R2[index2] && params[ROW_ON_PARAM + 1].getValue() + inputs[ROW_ON_CV + 1].getVoltage()) ? 10.f : 0.f;
@@ -707,13 +709,14 @@ struct PolySEQ16 : Module
 		{
 			if (!snap)
 			{
-				outVoct[0] = (params[ROW1_PARAM + index3].getValue() + 0.1) / 12;
+				outputs[ROW3_OUTPUT].setVoltage((params[ROW3_PARAM + index2].getValue() + 0.1) / 12);
+				outVoct[2] = (params[ROW3_PARAM + index3].getValue() + 0.1) / 12;
 			}
 			else
 			{
-				rowSetting = round(params[ROW1_PARAM + index3].getValue() + 0.1);
-				outputs[ROW1_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
-				outVoct[0] = chromaticScale[rowSetting] / 12.0f;
+				rowSetting = round(params[ROW3_PARAM + index3].getValue() + 0.1);
+				outputs[ROW3_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
+				outVoct[2] = chromaticScale[rowSetting] / 12.0f;
 			}
 		}
 		outGate[2] = (gateIn && gates_R3[index3] && params[ROW_ON_PARAM + 2].getValue() + inputs[ROW_ON_CV + 2].getVoltage()) ? 10.f : 0.f;
@@ -726,13 +729,14 @@ struct PolySEQ16 : Module
 		{
 			if (!snap)
 			{
-				outVoct[0] = (params[ROW1_PARAM + index3].getValue() + 0.1) / 12;
+				outputs[ROW4_OUTPUT].setVoltage((params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1) / 12);
+				outVoct[3] = (params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1) / 12;
 			}
 			else
 			{
-				rowSetting = round(params[ROW1_PARAM + index3].getValue() + 0.1);
-				outputs[ROW1_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
-				outVoct[0] = chromaticScale[rowSetting] / 12.0f;
+				rowSetting = round(params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1);
+				outputs[ROW4_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
+				outVoct[3] = chromaticScale[rowSetting] / 12.0f;
 			}
 		}
 		outGate[3] = (gateIn && gates_R4[index4] && params[ROW_ON_PARAM + 3].getValue() + inputs[ROW_ON_CV + 3].getVoltage()) ? 10.f : 0.f;
