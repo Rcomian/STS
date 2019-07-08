@@ -783,6 +783,7 @@ struct PolySEQ16Widget : ModuleWidget
 		for (auto i = 0; i < 16 * 4; i++)
 		{
 			knobs[i]->snap = snap;
+			knobs[i]->smooth = !snap;
 		}
 	}
 	SvgPanel *goldPanel;
