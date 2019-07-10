@@ -170,56 +170,9 @@ struct PolySEQ16 : Module
             {
                 int v = getValue();
 
-                //if (snap)
-                //{
-                    std::string note = noteNames[v];
+                std::string note = noteNames[v];
                     
-                //}
                 return note;              
-
-                /*
-				std::string left;
-				std::string right;
-				static 
-				if (math::chop(v) == 0.0 || v == 4.0f) {
-					return "Sine " + ParamQuantity::getDisplayValueString();
-				} else if (f == 1 && math::chop(r) == 0.0) {
-					return "Triangle " + ParamQuantity::getDisplayValueString();
-				} else if (f == 2 && math::chop(r) == 0.0) {
-					return "Saw " + ParamQuantity::getDisplayValueString();
-				} else if (f == 3 && math::chop(r) == 0.0) {
-					return "Square " + ParamQuantity::getDisplayValueString();
-				}
-
-				if (r < 0.3333f) {
-					dial = "|..";	
-				} else if (r > 0.6666f) {
-					dial = "..|";	
-				} else {
-					dial = ".|.";	
-				}
-
-				switch(f) {
-					case 0:
-						left = "Sine";
-						right = "Triangle ";
-						break;
-					case 1:
-						left = "Triangle";
-						right = "Saw ";
-						break;
-					case 2:
-						left = "Saw";
-						right = "Square ";
-						break;
-					case 3:
-						left = "Square";
-						right = "Sine ";
-						break;
-				}
-                */
-
-                //return left + dial + right + ParamQuantity::getDisplayValueString();
             }
         };
 
