@@ -118,10 +118,6 @@ struct PolySEQ16 : Module
     int index3 = 0;
     int index4 = 0;
 
-    //bool param2;
-    //bool param3;
-    //bool param4;
-
     bool gates_R1[16] = {};
     bool gates_R2[16] = {};
     bool gates_R3[16] = {};
@@ -181,10 +177,10 @@ struct PolySEQ16 : Module
 
         for (int i = 0; i < 16; i++)
         {
-            configParam<RowParamQuantity>(ROW1_PARAM + i, 0.f, 24.f, 1.f, " ");
-            configParam<RowParamQuantity>(ROW2_PARAM + i, 0.f, 24.f, 1.f, " ");
-            configParam<RowParamQuantity>(ROW3_PARAM + i, 0.f, 24.f, 1.f, " ");
-            configParam<RowParamQuantity>(ROW4_PARAM + i, 0.f, 24.f, 1.f, " ");
+            configParam<RowParamQuantity>(ROW1_PARAM + i, 0.f, 24.f, 0.f, " ");
+            configParam<RowParamQuantity>(ROW2_PARAM + i, 0.f, 24.f, 0.f, " ");
+            configParam<RowParamQuantity>(ROW3_PARAM + i, 0.f, 24.f, 0.f, " ");
+            configParam<RowParamQuantity>(ROW4_PARAM + i, 0.f, 24.f, 0.f, " ");
             configParam(GATE_PARAM_R1 + i, 0.f, 1.f, 0.f);
             configParam(GATE_PARAM_R2 + i, 0.f, 1.f, 0.f);
             configParam(GATE_PARAM_R3 + i, 0.f, 1.f, 0.f);
@@ -248,8 +244,12 @@ struct PolySEQ16 : Module
     {
         json_t *rootJ = json_object();
 
-        // running
+        
         json_object_set_new(rootJ, "running", json_boolean(running));
+
+        json_object_set_new(rootJ, "panelStyle", json_integer(panelStyle));
+
+        json_object_set_new(rootJ, "snap", json_boolean(snap));
 
         //row on lights
         json_t *row_onJ = json_array();
@@ -359,6 +359,14 @@ struct PolySEQ16 : Module
         json_t *runningJ = json_object_get(rootJ, "running");
         if (runningJ)
             running = json_is_true(runningJ);
+
+        json_t *panelStyleJ = json_object_get(rootJ, "panelStyle");
+		if (panelStyleJ)
+			panelStyle = json_integer_value(panelStyleJ);
+
+        json_t *snapJ = json_object_get(rootJ, "snap");
+        if (snapJ)
+            snap = json_is_true(snapJ);
 
         //row on lights
         json_t *row_onJ = json_object_get(rootJ, "row_on");
@@ -551,6 +559,8 @@ struct PolySEQ16 : Module
 
         int channels = 4;
         int rowSetting;
+
+        
         // Run
         if (runningTrigger.process(params[RUN_PARAM].getValue() || inputs[RUN_ON_OFF].getVoltage())) //  RUN_ON_OFF
         {
@@ -959,7 +969,7 @@ struct PolySEQ16Widget : ModuleWidget
             addChild(createLightCentered<MediumLight<RedLight>>(Vec(locX[i], locY[5]), module, PolySEQ16::TRIG_LIGHTS_R1 + i));
 
             //////////////////////  Row 2
-            addChild(createLightCentered<MediumLight<YellowLight>>(Vec(locX[i], locY[7]), module, PolySEQ16::GATE_LIGHTS2 + i));
+            addChild(createLightCentered<SmallLight<YellowLight>>(Vec(locX[i], locY[7]), module, PolySEQ16::GATE_LIGHTS2 + i));
             knobs[16 * 1 + i] = createParamCentered<sts_Davies_snap_25_Red>(Vec(locX[i], locY[6]), module, PolySEQ16::ROW2_PARAM + i);
             addParam(knobs[16 * 1 + i]);
 
