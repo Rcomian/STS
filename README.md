@@ -1,8 +1,18 @@
 
+V1.0.3 
+Lowered CPU ude on Oddy some more.
+On PolySEQ16:
+  Misc Small fixes, including cleaned up and aligning interface layout,
+  Added different step setting for each row.
+  Tool tip for knobs now shows note letter.
+  Added menu item for changing knobs from 'snapped to semitones' to 'continious'.
+  Added separate 'index' lights per row.
+
 V1.0.2
 Added LFOPoly
 Added label for channel on/off SEQ16 (ooops)
-Lowered CPU use on Oddy Poly
+Lowered CPU use on Oddy Poly.
+ 
 
 
 Here is the V1 list so far. Documentation to follow.....
@@ -19,7 +29,7 @@ Ring Modulator: Orphaned module from JE ported to V1. Will be POLY at a later da
 
 Wave Folder: Orphaned module from JE ported to V1. Will be POLY at a later date.
 
-LFOPoly:  16 channel LFO for polyphonic modulation.   Independent Frequency, Waveshape, ans Pule Width per LFO. Polyphonic CV inputs for Frequency, Waveshape, ans Pule Width.
+LFOPoly:  16 channel LFO for polyphonic modulation.   Independent Frequency, Waveshape, ans Pule Width per LFO. Polyphonic CV inputs for Frequency, Waveshape, and Pule Width, along with Reset trigger input
 
 
 
