@@ -1,7 +1,12 @@
 
 V1.0.3
 
+on Oddy (previously Oddyssey)
+
 Lowered CPU ude on Oddy some more.
+
+Finalized 4 waveforms available on VCOs and LFO.  Waveforms can be morphed using CV inputs.
+
 
 On PolySEQ16:
 
