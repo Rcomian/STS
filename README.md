@@ -15,11 +15,16 @@ On PolySEQ16:
   
   Added separate 'index' lights per row.
   
+  
 
 V1.0.2
+
 Added LFOPoly
+
 Added label for channel on/off SEQ16 (ooops)
+
 Lowered CPU use on Oddy Poly.
+
  
 
 
