@@ -1,12 +1,20 @@
 
-V1.0.3 
+V1.0.3
+
 Lowered CPU ude on Oddy some more.
+
 On PolySEQ16:
+
   Misc Small fixes, including cleaned up and aligning interface layout,
+  
   Added different step setting for each row.
+  
   Tool tip for knobs now shows note letter.
+  
   Added menu item for changing knobs from 'snapped to semitones' to 'continious'.
+  
   Added separate 'index' lights per row.
+  
 
 V1.0.2
 Added LFOPoly
