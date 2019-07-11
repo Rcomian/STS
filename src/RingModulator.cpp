@@ -53,7 +53,7 @@ struct RingModulator : Module
 		NUM_LIGHTS
 	};
 
-	int panelStyle = 1;
+	int panelStyle = 0;
 
 	RingModulator()
 	{

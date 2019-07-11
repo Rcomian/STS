@@ -1138,11 +1138,12 @@ struct Odyssey : Module
 	void process(const ProcessArgs &args) override
 	{
 
-		if (inputs[IN_VOLT_OCTAVE_INPUT_1].isConnected() && (outputs[MAIN_AUDIO_OUT].isConnected() || outputs[MAIN_AUDIO_OUT].isConnected()))
+		if (outputs[MAIN_AUDIO_OUT].isConnected() || outputs[MONO_OUTPUT].isConnected() || outputs[OUTPUT_TO_EXT_VCF].isConnected()) 
+		//if (inputs[IN_VOLT_OCTAVE_INPUT_1].isConnected())
 		{
 			//channels = inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels();
 			int channels = std::max(1, inputs[IN_VOLT_OCTAVE_INPUT_1].getChannels());
-
+		
 			using simd::float_4;
 
 			////////////////////////////////////////////////////////

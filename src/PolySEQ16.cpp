@@ -88,7 +88,7 @@ struct PolySEQ16 : Module
     int numSteps3;
     int numSteps4;
 
-    int panelStyle = 1;
+    int panelStyle = 0;
 
     float clockTime;
     dsp::SchmittTrigger clockTrigger;
@@ -167,8 +167,8 @@ struct PolySEQ16 : Module
                 int v = getValue();
 
                 std::string note = noteNames[v];
-                    
-                return note;              
+
+                return note;
             }
         };
 
@@ -196,6 +196,7 @@ struct PolySEQ16 : Module
         }
 
         onReset();
+        snap = true;
     }
 
     void onReset() override
@@ -215,10 +216,23 @@ struct PolySEQ16 : Module
             trigs_R3[i] = true;
             trigs_R4[i] = true;
         }
+        for (int i = 0; i < 4; i++)
+        {
+            row_on[i] = true;
+        }
+        snap = true;
+        index = 0;
+        index2 = 0;
+        index3 = 0;
+        index4 = 0;
+
     }
 
+    
     void onRandomize() override
     {
+        snap = (random::uniform() < 0.5);
+
         for (int i = 0; i < 16; i++)
         {
             gates_R1[i] = (random::uniform() > 0.5f);
@@ -244,13 +258,13 @@ struct PolySEQ16 : Module
     {
         json_t *rootJ = json_object();
 
-        
         json_object_set_new(rootJ, "running", json_boolean(running));
 
         json_object_set_new(rootJ, "panelStyle", json_integer(panelStyle));
 
-        json_object_set_new(rootJ, "snap", json_boolean(snap));
+        json_object_set_new(rootJ, "Snap", json_boolean(snap));
 
+        
         //row on lights
         json_t *row_onJ = json_array();
         for (int i = 0; i < 4; i++)
@@ -361,13 +375,18 @@ struct PolySEQ16 : Module
             running = json_is_true(runningJ);
 
         json_t *panelStyleJ = json_object_get(rootJ, "panelStyle");
-		if (panelStyleJ)
-			panelStyle = json_integer_value(panelStyleJ);
+        if (panelStyleJ)
+            panelStyle = json_integer_value(panelStyleJ);
 
-        json_t *snapJ = json_object_get(rootJ, "snap");
-        if (snapJ)
-            snap = json_is_true(snapJ);
-
+        
+        json_t *SnapJ = json_object_get(rootJ, "Snap");
+        if (SnapJ)
+        {
+            snap = json_is_true(SnapJ);
+            //setSnap(snap);
+            
+        }
+        
         //row on lights
         json_t *row_onJ = json_object_get(rootJ, "row_on");
         if (row_onJ)
@@ -560,7 +579,8 @@ struct PolySEQ16 : Module
         int channels = 4;
         int rowSetting;
 
-        
+        //setSnap(snap);
+
         // Run
         if (runningTrigger.process(params[RUN_PARAM].getValue() || inputs[RUN_ON_OFF].getVoltage())) //  RUN_ON_OFF
         {
@@ -799,8 +819,9 @@ struct SetSnapItem : MenuItem
 
 struct PolySEQ16Widget : ModuleWidget
 {
+    
     Knob *knobs[16 * 4];
-
+    
     void setSnap(bool snap)
     {
         for (auto i = 0; i < 16 * 4; i++)
@@ -809,10 +830,37 @@ struct PolySEQ16Widget : ModuleWidget
             knobs[i]->smooth = !snap;
         }
     }
+    
     SvgPanel *goldPanel;
     SvgPanel *blackPanel;
     SvgPanel *whitePanel;
+    /*
+    json_t *toJson() override
+    {
+        json_t *rootJ = ModuleWidget::toJson();
 
+        
+        json_object_set_new(rootJ, "snap", json_boolean(snap));
+        
+
+        return rootJ;
+    }
+
+    void fromJson(json_t *rootJ) override
+    {
+        ModuleWidget::fromJson(rootJ);
+
+        // snap
+        json_t *SnapJ = json_object_get(rootJ, "Snap");
+        if (SnapJ)
+        {
+            int snap = json_is_true(SnapJ);
+            setSnap(snap);
+            
+        }
+
+    }
+    */
     struct panelStyleItem : MenuItem
     {
         PolySEQ16 *module;
@@ -869,7 +917,6 @@ struct PolySEQ16Widget : ModuleWidget
     PolySEQ16Widget(PolySEQ16 *module)
     {
         setModule(module);
-        //setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/polyseq16_gold.svg")));
 
         goldPanel = new SvgPanel();
         goldPanel->setBackground(APP->window->loadSvg(asset::plugin(pluginInstance, "res/polyseq16_gold.svg")));
@@ -1014,6 +1061,27 @@ struct PolySEQ16Widget : ModuleWidget
             addOutput(createOutputCentered<sts_Port>(Vec(locX[i], locY[18]), module, PolySEQ16::GATE_OUTPUT + i));
         }
     }
+    /*
+    json_t *toJson() override
+    {
+        json_t *rootJ = ModuleWidget::toJson();
+
+        // snap
+        json_object_set_new(rootJ, "snap", json_boolean(snap));
+
+        return rootJ;
+    }
+
+    void fromJson(json_t *rootJ) override
+    {
+        ModuleWidget::fromJson(rootJ);
+
+        // snap
+        json_t *snapJ = json_object_get(rootJ, "snap");
+        if (snapJ)
+            snap = json_is_true(snapJ);
+    }
+    */
     void step() override
     {
         if (module)
@@ -1021,15 +1089,19 @@ struct PolySEQ16Widget : ModuleWidget
             goldPanel->visible = ((((PolySEQ16 *)module)->panelStyle) == 0);
             blackPanel->visible = ((((PolySEQ16 *)module)->panelStyle) == 1);
             whitePanel->visible = ((((PolySEQ16 *)module)->panelStyle) == 2);
+
+            if(((PolySEQ16 *)module) -> snap != knobs[0]->snap)
+            {
+                setSnap(((PolySEQ16 *)module)->snap);
+            }
         }
         Widget::step();
     }
 };
-
 void SetSnapItem::onAction(const event::Action &e)
 {
     module->snap = !module->snap;
-    widget->setSnap(module->snap);
+    //widget->setSnap(module->snap);
 }
 
 Model *modelPolySEQ16 = createModel<PolySEQ16, PolySEQ16Widget>("PolySEQ16");

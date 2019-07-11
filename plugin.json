@@ -52,12 +52,6 @@
 			"name": "LFOPoly",
 			"description": "Poly LFO 16",
 			"tags": ["LFO", "Polyphonic"]
-		},
-		{
-			"slug": "Chords",
-			"name": "Chords",
-			"description": "Poly Chords",
-			"tags": ["Utility", "Synth Voice", "Polyphonic"]
 		}
 		
 	]

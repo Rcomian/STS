@@ -108,7 +108,7 @@ struct LFOPoly : Module {
 	LowFrequencyOscillator<float_4> oscillators[4];
 	dsp::ClockDivider lightDivider;
 
-    int panelStyle = 1;
+    int panelStyle = 0;
     int channels = 1;
     float waveParam[16];
     float freqParam[16];

@@ -39,7 +39,7 @@ struct VU_Poly : Module
 		NUM_LIGHTS // N
 	};
 
-	int panelStyle = 1;
+	int panelStyle = 0;
 
 	dsp::VuMeter2 vuMeter[MAX_POLY_CHANNELS];
 	dsp::ClockDivider vuDivider;

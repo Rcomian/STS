@@ -41,7 +41,7 @@ struct Illiad : Module
 	};
 
 	float out_[33];
-	int panelStyle = 1;
+	int panelStyle = 0;
 
 	Illiad()
 	{
