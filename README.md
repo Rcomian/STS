@@ -1,7 +1,7 @@
 
 V1.0.3
 
-on Oddy (previously Oddyssey)
+on Oddy: (previously Oddyssey)
 
 Lowered CPU ude on Oddy some more.
 
