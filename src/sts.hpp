@@ -14,8 +14,8 @@ extern Model *modelRingModulator;
 extern Model *modelWaveFolder;
 extern Model *modelVU_Poly;
 extern Model *modelLFOPoly;
-//extern Model *modelChords;
-//extern Model *modelMidiFile;
+extern Model *modelChords;
+extern Model *modelMidiFile;
 //extern Model *modelMixer8;
 //extern Model *modelSEQEXP;
 //extern Model *modelOdy;
@@ -73,8 +73,8 @@ struct stsBigPushButton : app::SVGSwitch
 	{
 		momentary = true;
 		
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dark/comp/CKD6b_0.svg")));
-		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/dark/comp/CKD6b_1.svg")));	
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6b_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6b_1.svg")));	
 	}
 };
 //============================================================================================================

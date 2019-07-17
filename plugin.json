@@ -1,6 +1,6 @@
 {
 	"slug": "STS",
-	"version": "1.0.3",
+	"version": "1.0.2",
 	"license": "GPL-3.0-only",
 	"name": "STS",
 	"author": "STS",
@@ -52,6 +52,18 @@
 			"name": "LFOPoly",
 			"description": "Poly LFO 16",
 			"tags": ["LFO", "Polyphonic"]
+		},
+		{
+			"slug": "Chords",
+			"name": "Chords",
+			"description": "Poly Chords",
+			"tags": ["Utility", "Synth Voice", "Polyphonic"]
+		},
+		{
+			"slug": "MidiFile",
+			"name": "MidiFile",
+			"description": "Poly Midi Player",
+			"tags": ["Utility", "Synth Voice", "Polyphonic", "Sequencer"]
 		}
 		
 	]
