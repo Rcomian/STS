@@ -46,10 +46,10 @@ struct MidiFileModule : Module
     };
     enum OutputIds
     {
-        CV_OUTPUT,
-		GATE_OUTPUT,
-		VELOCITY_OUTPUT,
-		AFTERTOUCH_OUTPUT,
+        //CV_OUTPUT,
+		//GATE_OUTPUT,
+		//VELOCITY_OUTPUT,
+		//AFTERTOUCH_OUTPUT,
 		PITCH_OUTPUT,
 		MOD_OUTPUT,
 		RETRIGGER_OUTPUT,
@@ -58,10 +58,10 @@ struct MidiFileModule : Module
 		START_OUTPUT,
 		STOP_OUTPUT,
 		CONTINUE_OUTPUT,
-        //ENUMS(CV_OUTPUTS, 16),
-        //ENUMS(GATE_OUTPUTS, 16),
-        //ENUMS(VELOCITY_OUTPUTS, 16),
-        //ENUMS(AFTERTOUCH_OUTPUTS, 16),
+        ENUMS(CV_OUTPUT, 16),
+        ENUMS(GATE_OUTPUT, 16),
+        ENUMS(VELOCITY_OUTPUT, 16),
+        ENUMS(AFTERTOUCH_OUTPUT, 16),
         NUM_OUTPUTS
     };
     enum LightIds
@@ -764,7 +764,7 @@ struct MidiFileWidget : ModuleWidget
         //static const int colRulerOutsSpacing = 30;
         static const int rowRulerOuts1 = 265;
         //static const int 2rowRulerOutsSpacing = 25;
-
+        /*
         addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 60.1445)), module, MidiFileModule::CV_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 60.1445)), module, MidiFileModule::GATE_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 60.1445)), module, MidiFileModule::VELOCITY_OUTPUT));
@@ -777,15 +777,15 @@ struct MidiFileWidget : ModuleWidget
 		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 108.144)), module, MidiFileModule::START_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 108.144)), module, MidiFileModule::STOP_OUTPUT));
 		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 108.144)), module, MidiFileModule::CONTINUE_OUTPUT));
-        /*
+        */
         for (int i = 0; i < 8; i++)
         {
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUTS + i, &module->panelTheme));
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i, &module->panelTheme));
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUTS + i));                                 //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i));         //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i)); //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUT + i));                                 //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUT + i));         //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
         }
 
         for (int i = 8; i < 16; i++)
@@ -793,11 +793,11 @@ struct MidiFileWidget : ModuleWidget
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUTS + i, &module->panelTheme));
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i, &module->panelTheme));
             //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1), module, MidiFileModule::CV_OUTPUTS + i));                                 //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i));         //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i)); //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1), module, MidiFileModule::CV_OUTPUT + i));                                 //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUT + i));         //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
         }
-        */
+        
     }
 };
 
