@@ -47,17 +47,17 @@ struct MidiFileModule : Module
     enum OutputIds
     {
         //CV_OUTPUT,
-		//GATE_OUTPUT,
-		//VELOCITY_OUTPUT,
-		//AFTERTOUCH_OUTPUT,
-		PITCH_OUTPUT,
-		MOD_OUTPUT,
-		RETRIGGER_OUTPUT,
-		CLOCK_OUTPUT,
-		CLOCK_DIV_OUTPUT,
-		START_OUTPUT,
-		STOP_OUTPUT,
-		CONTINUE_OUTPUT,
+        //GATE_OUTPUT,
+        //VELOCITY_OUTPUT,
+        //AFTERTOUCH_OUTPUT,
+        PITCH_OUTPUT,
+        MOD_OUTPUT,
+        RETRIGGER_OUTPUT,
+        CLOCK_OUTPUT,
+        CLOCK_DIV_OUTPUT,
+        START_OUTPUT,
+        STOP_OUTPUT,
+        CONTINUE_OUTPUT,
         ENUMS(CV_OUTPUT, 16),
         ENUMS(GATE_OUTPUT, 16),
         ENUMS(VELOCITY_OUTPUT, 16),
@@ -126,7 +126,6 @@ struct MidiFileModule : Module
     float CV_Out[MAX_POLY_CHANNELS];
     float GATE_Out[MAX_POLY_CHANNELS];
     float VELOCITY_Out[MAX_POLY_CHANNELS];
-    
 
     inline int getChannelKnob() { return (int)(params[CHANNEL_PARAM].getValue() + 0.5f); }
 
@@ -134,7 +133,7 @@ struct MidiFileModule : Module
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS); //, cachedNotes(128)); //, cachedNotes(128);
         //configParam(OCTAVE_PARAM, -4.f, 2.f, -1.f, "Octaves");
-        configParam(CHANNEL_PARAM, 0.0f, 16.0f, 0.0f);
+        configParam(CHANNEL_PARAM, 0.0f, 16.0f, 0.0f, "Midi Channel ");
         cachedNotes.clear();
         onReset();
     }
@@ -207,7 +206,7 @@ struct MidiFileModule : Module
         for (int i = 0; i < 16; i++)
         {
             nowIndex++;
-            if (nowIndex > 15)   //if (nowIndex > 3)
+            if (nowIndex > 15) //if (nowIndex > 3)
                 nowIndex = 0;
             if (!(gates[nowIndex] || pedalgates[nowIndex]))
             {
@@ -217,7 +216,7 @@ struct MidiFileModule : Module
         }
         // All taken = steal (stealIndex always rotates)
         stealIndex++;
-        if (stealIndex > 15)    //if (stealIndex > 3)
+        if (stealIndex > 15) //if (stealIndex > 3)
             stealIndex = 0;
         if ((polyMode < REASSIGN_MODE) && (gates[stealIndex]))
             cachedNotes.push_back(notes[stealIndex]);
@@ -487,11 +486,11 @@ struct MidiFileModule : Module
                 midifile.joinTracks();
 
                 tracks = midifile.getTrackCount();
-                
-				cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
-				//if (tracks > 1)
-					cout << "TRACKS: " << tracks << endl;
-				/*	
+
+                cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
+                //if (tracks > 1)
+                cout << "TRACKS: " << tracks << endl;
+                /*	
 				for (int track = 0; track < tracks; track++)
 				{
 					if (tracks > 1)
@@ -527,6 +526,7 @@ struct MidiFileModule : Module
     void process(const ProcessArgs &args) override
     {
         int channels = 16;
+        int Mchannel;
         double sampleTime = args.sampleTime;
         if (btnLoadMidi.process(params[LOADMIDI_PARAM].value))
         {
@@ -534,6 +534,13 @@ struct MidiFileModule : Module
             loadMidiFile();
         }
         //********** Buttons, knobs, switches and inputs **********
+
+        // Reset
+        if (resetTrigger.process(params[RESET_PARAM].getValue() + inputs[RESET_INPUT].getVoltage()))
+        {
+            resetLight = 1.0f;
+            resetPlayer();
+        }
 
         // Run state button
         if (runningTrigger.process(params[RUN_PARAM].getValue() + inputs[RUNCV_INPUT].getVoltage()))
@@ -547,7 +554,7 @@ struct MidiFileModule : Module
         // "Clock"
         const int track = 0; // midifile was flattened when loaded
         double readTime = 0.0;
-        
+
         if (running)
         {
             for (int ii = 0; ii < 200; ii++)
@@ -567,61 +574,56 @@ struct MidiFileModule : Module
                     break;
                 }
                 //int Mchannel = 0;
-                int Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
+                Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
                 if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble())
+                {
                     processMessage(&midifile[track][event]);
+                }
                 event++;
             }
-        }
-
-        // Reset
-        if (resetTrigger.process(params[RESET_PARAM].getValue() + inputs[RESET_INPUT].getVoltage()))
-        {
-            resetLight = 1.0f;
-            resetPlayer();
         }
 
         for (int i = 0; i < 16; i++)
 
         {
-            
-            //int channels = 16;
+
             uint8_t lastNote = notes[i];
             uint8_t lastGate = (gates[i] || pedalgates[i]);
             CV_Out[i] = ((lastNote - 60) / 12.f);
             GATE_Out[i] = ((lastGate && running) ? 10.f : 0.f);
             VELOCITY_Out[i] = (rescale(noteData[lastNote].velocity, 0, 127, 0.f, 10.f));
+            //CV_Out[i] = ((lastNote - 60) / 12.f);
+            //GATE_Out[i] = ((lastGate && running) ? 10.f : 0.f);
+            //VELOCITY_Out[i] = (rescale(noteData[lastNote].velocity, 0, 127, 0.f, 10.f));
             //outputs[AFTERTOUCH_OUTPUTS + i].setVoltage(rescale(noteData[lastNote].aftertouch, 0, 127, 0.f, 10.f));
+
+            outputs[CV_OUTPUT].setChannels(channels);
+            outputs[CV_OUTPUT].writeVoltages(CV_Out);
+            outputs[GATE_OUTPUT].setChannels(channels);
+            outputs[GATE_OUTPUT].writeVoltages(GATE_Out);
+            outputs[VELOCITY_OUTPUT].setChannels(channels);
+            outputs[VELOCITY_OUTPUT].writeVoltages(VELOCITY_Out);
         }
 
-        outputs[CV_OUTPUT].setChannels(channels);
-        outputs[CV_OUTPUT].writeVoltages(CV_Out);
-        outputs[GATE_OUTPUT].setChannels(channels);
-        outputs[GATE_OUTPUT].writeVoltages(GATE_Out);
-        outputs[VELOCITY_OUTPUT].setChannels(channels);
-        outputs[VELOCITY_OUTPUT].writeVoltages(VELOCITY_Out);
-            
-		lightRefreshCounter++;
-		if (lightRefreshCounter >= displayRefreshStepSkips)
-		{
-			lightRefreshCounter = 0;
-            
+        lightRefreshCounter++;
+        if (lightRefreshCounter >= displayRefreshStepSkips)
+        {
+            lightRefreshCounter = 0;
 
-			// fileLoaded light
-			lights[LOADMIDI_LIGHT + 0].value = fileLoaded ? 1.0f : 0.0f;
-			lights[LOADMIDI_LIGHT + 1].value = !fileLoaded ? 1.0f : 0.0f;
+            // fileLoaded light
+            lights[LOADMIDI_LIGHT + 0].value = fileLoaded ? 1.0f : 0.0f;
+            lights[LOADMIDI_LIGHT + 1].value = !fileLoaded ? 1.0f : 0.0f;
 
-			// Reset light
-			lights[RESET_LIGHT].value = resetLight;
-			resetLight -= (resetLight / lightLambda) * (float)sampleTime * displayRefreshStepSkips;
+            // Reset light
+            lights[RESET_LIGHT].value = resetLight;
+            resetLight -= (resetLight / lightLambda) * (float)sampleTime * displayRefreshStepSkips;
 
-			// Run light
-			lights[RUN_LIGHT].value = running ? 1.0f : 0.0f;
-        
-		} // lightRefreshCounter
-    }   
-}; 
+            // Run light
+            lights[RUN_LIGHT].value = running ? 1.0f : 0.0f;
 
+        } // lightRefreshCounter
+    }
+};
 
 struct MainDisplayWidget : TransparentWidget
 {
@@ -700,9 +702,9 @@ struct MidiFileWidget : ModuleWidget
     MidiFileWidget(MidiFileModule *module)
     {
         setModule(module);
-        
+
         setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midifile.svg")));
-        
+
         // Screws
         addChild(createWidget<ScrewSilver>(Vec(15, 0)));
         addChild(createWidget<ScrewSilver>(Vec(box.size.x - 30, 0)));
@@ -797,7 +799,6 @@ struct MidiFileWidget : ModuleWidget
             addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUT + i));         //, &module->panelTheme));
             addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
         }
-        
     }
 };
 
