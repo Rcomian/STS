@@ -127,13 +127,13 @@ struct MidiFileModule : Module
     float GATE_Out[MAX_POLY_CHANNELS];
     float VELOCITY_Out[MAX_POLY_CHANNELS];
 
-    inline int getChannelKnob() { return (int)(params[CHANNEL_PARAM].getValue() + 0.5f); }
+    //inline int getChannelKnob() { return (int)(params[CHANNEL_PARAM].getValue() + 0.5f); }
 
     MidiFileModule()
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS); //, cachedNotes(128)); //, cachedNotes(128);
-        //configParam(OCTAVE_PARAM, -4.f, 2.f, -1.f, "Octaves");
-        configParam(CHANNEL_PARAM, 0.0f, 16.0f, 0.0f, "Midi Channel ");
+        
+        configParam(CHANNEL_PARAM, 1.0f, 16.0f, 1.0f, "Midi Channel ");
         cachedNotes.clear();
         onReset();
     }
@@ -484,6 +484,8 @@ struct MidiFileModule : Module
                 midifile.doTimeAnalysis();
                 midifile.linkNotePairs();
                 midifile.joinTracks();
+                //midifile.splitTracks();
+                midifile.splitTracksByChannel();
 
                 tracks = midifile.getTrackCount();
 
@@ -552,9 +554,10 @@ struct MidiFileModule : Module
         ///////////////   tracks   =  # of tracks   .///////////////////////
 
         // "Clock"
-        const int track = 0; // midifile was flattened when loaded
+        //const int track = 2; // midifile was flattened when loaded   //not any more  hahaha
+        int track = params[CHANNEL_PARAM].getValue() + 0.5f;
         double readTime = 0.0;
-
+ 
         if (running)
         {
             for (int ii = 0; ii < 200; ii++)
@@ -574,11 +577,12 @@ struct MidiFileModule : Module
                     break;
                 }
                 //int Mchannel = 0;
-                Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
-                if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble())
-                {
-                    processMessage(&midifile[track][event]);
-                }
+                //Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
+                //if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble())
+                //{
+                    
+                processMessage(&midifile[track][event]);
+                //}
                 event++;
             }
         }
@@ -732,7 +736,6 @@ struct MidiFileWidget : ModuleWidget
         }
 
         // Channel knob
-        //addParam(createDynamicParamCentered<IMBigSnapKnob>(Vec(colRulerM2+offsetIMBigKnob, rowRulerT5+offsetIMBigKnob), module, MidiFileModule::CHANNEL_PARAM, 0.0f, 16.0f, 0.0f, &module->panelTheme));
         addParam(createParam<sts_Davies_snap_35_Grey>(Vec(colRulerM1, rowRulerT5 - 5), module, MidiFileModule::CHANNEL_PARAM)); //, 0.0f, 16.0f, 0.0f));    /
 
         //Main load button
@@ -749,8 +752,6 @@ struct MidiFileWidget : ModuleWidget
         addChild(createLight<MediumLight<BlueLight>>(Vec(colRulerM2 + 6.5, rowRulerM0 + 3.9f), module, MidiFileModule::RESET_LIGHT));
 
         // Run LED bezel and light
-        //addParam(createParamCentered<LEDBezel>(Vec(colRulerM2, rowRulerM0), module, MidiFileModule::RUN_PARAM));    //, 0.0f, 1.0f, 0.0f));
-        //addChild(createLightCentered<MuteLight<GreenLight>>(Vec(colRulerM2, rowRulerM0), module, MidiFileModule::RUN_LIGHT));
         addParam(createParam<stsLEDButton>(Vec(colRulerM3, rowRulerM0 + 2), module, MidiFileModule::RUN_PARAM)); //, 0.0f, 1.0f, 0.0f));
         addChild(createLight<MediumLight<GreenLight>>(Vec(colRulerM3 + 1.5, rowRulerM0 + 3.9f), module, MidiFileModule::RUN_LIGHT));
 
