@@ -132,7 +132,6 @@ struct MidiFileModule : Module
     MidiFileModule()
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS); //, cachedNotes(128)); //, cachedNotes(128);
-        
         configParam(CHANNEL_PARAM, 1.0f, 16.0f, 1.0f, "Midi Channel ");
         cachedNotes.clear();
         onReset();
