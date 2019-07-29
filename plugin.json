@@ -60,8 +60,8 @@
 			"tags": ["Utility", "Synth Voice", "Polyphonic"]
 		},
 		{
-			"slug": "MidiFile",
-			"name": "MidiFile",
+			"slug": "MidiPlayer",
+			"name": "MidiPlayer",
 			"description": "Poly Midi Player",
 			"tags": ["Utility", "Synth Voice", "Polyphonic", "Sequencer"]
 		}

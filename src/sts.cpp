@@ -17,12 +17,9 @@ void init(rack::Plugin *p)
 	p->addModel(modelLFOPoly);
 	p->addModel(modelChords);
 
-	p->addModel(modelMidiFile);
-	//p->addModel(modelMixer8);
-	//p->addModel(modelOdy);
-	//p->addModel(modelOdyssey);
+	p->addModel(modelMidiPlayer);
 	//p->addModel(modelSEQEXP);
-	//p->addModel(modelMidiPlayer);
+	
 	
 
 }

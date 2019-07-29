@@ -7,7 +7,7 @@ struct PolySEQ16 : Module
 {
     enum ParamIds
     {
-        CLOCK_PARAM,
+        //CLOCK_PARAM,
         RUN_PARAM,
         RESET_PARAM,
         ENUMS(STEPS_PARAM, 4),
@@ -144,14 +144,14 @@ struct PolySEQ16 : Module
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
-        configParam(CLOCK_PARAM, -2.f, 6.f, 2.f, "Clock Speed  ");
+        //configParam(CLOCK_PARAM, -2.f, 6.f, 2.f, "Clock Speed  ");
         configParam(RUN_PARAM, 0.f, 1.f, 0.f);
         configParam(RESET_PARAM, 0.f, 1.f, 0.f);
         configParam(STEPS_PARAM + 0, 1.f, 16.f, 16.f, "Steps Row 1");
         configParam(STEPS_PARAM + 1, 1.f, 16.f, 16.f, "Steps Row 2");
         configParam(STEPS_PARAM + 2, 1.f, 16.f, 16.f, "Steps Row 3");
         configParam(STEPS_PARAM + 3, 1.f, 16.f, 16.f, "Steps Row 4");
-        configParam(OCT4_PARAM, -2.f, 2.f, 0.f, "Row 4 Octave ");
+        configParam(OCT4_PARAM, -2.0f, 0.0f, 0.0f, "Row 4 Octave ");
 
         configParam(ROW_ON_PARAM + 0, 0.f, 1.f, 1.f);
         configParam(ROW_ON_PARAM + 1, 0.f, 1.f, 1.f);
@@ -177,10 +177,10 @@ struct PolySEQ16 : Module
 
         for (int i = 0; i < 16; i++)
         {
-            configParam<RowParamQuantity>(ROW1_PARAM + i, 0.f, 24.f, 0.f, " ");
-            configParam<RowParamQuantity>(ROW2_PARAM + i, 0.f, 24.f, 0.f, " ");
-            configParam<RowParamQuantity>(ROW3_PARAM + i, 0.f, 24.f, 0.f, " ");
-            configParam<RowParamQuantity>(ROW4_PARAM + i, 0.f, 24.f, 0.f, " ");
+            configParam<RowParamQuantity>(ROW1_PARAM + i, 0.f, 24.f, 12.f, " ");
+            configParam<RowParamQuantity>(ROW2_PARAM + i, 0.f, 24.f, 12.f, " ");
+            configParam<RowParamQuantity>(ROW3_PARAM + i, 0.f, 24.f, 12.f, " ");
+            configParam<RowParamQuantity>(ROW4_PARAM + i, 0.f, 24.f, 12.f, " ");
             configParam(GATE_PARAM_R1 + i, 0.f, 1.f, 0.f);
             configParam(GATE_PARAM_R2 + i, 0.f, 1.f, 0.f);
             configParam(GATE_PARAM_R3 + i, 0.f, 1.f, 0.f);
@@ -766,19 +766,22 @@ struct PolySEQ16 : Module
 
         if (params[ROW_ON_PARAM + 3].getValue())
         {
+            
             if (!snap)
             {
-                outputs[ROW4_OUTPUT].setVoltage((params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1) / 12);
-                outVoct[3] = (params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1) / 12;
+                float temp1;
+                temp1 = ((params[ROW4_PARAM + index3].getValue()) + (params[OCT4_PARAM].getValue() * 12));
+                outputs[ROW4_OUTPUT].setVoltage(temp1 / 12);
+                outVoct[3] = temp1 / 12;
             }
             else
             {
-                rowSetting = round(params[ROW4_PARAM + index3].getValue() + params[OCT4_PARAM].getValue() + 0.1);
-                outputs[ROW4_OUTPUT].setVoltage(chromaticScale[rowSetting] / 12.0f);
-                outVoct[3] = chromaticScale[rowSetting] / 12.0f;
+                //rowSetting = round((params[ROW4_PARAM + index3].getValue()));
+                rowSetting = params[ROW4_PARAM + index3].getValue();
+                outputs[ROW4_OUTPUT].setVoltage(((chromaticScale[rowSetting]) + (params[OCT4_PARAM].getValue() * 12))/ 12.0f);
+                outVoct[3] = ((chromaticScale[rowSetting]) + (params[OCT4_PARAM].getValue() * 12)) / 12.0f;
             }
         }
-        outGate[3] = (gateIn && gates_R4[index4] && params[ROW_ON_PARAM + 3].getValue() + inputs[ROW_ON_CV + 3].getVoltage()) ? 10.f : 0.f;
         outGate2[3] = (gateIn && gates2_R4[index4] && params[ROW_ON_PARAM + 3].getValue() + inputs[ROW_ON_CV + 3].getVoltage()) ? 10.f : 0.f;
         outTrig[3] = (gateIn && trigs_R4[index4] && params[ROW_ON_PARAM + 3].getValue() + inputs[ROW_ON_CV + 3].getVoltage() && pulse) ? 10.f : 0.f;
 
@@ -834,33 +837,7 @@ struct PolySEQ16Widget : ModuleWidget
     SvgPanel *goldPanel;
     SvgPanel *blackPanel;
     SvgPanel *whitePanel;
-    /*
-    json_t *toJson() override
-    {
-        json_t *rootJ = ModuleWidget::toJson();
-
-        
-        json_object_set_new(rootJ, "snap", json_boolean(snap));
-        
-
-        return rootJ;
-    }
-
-    void fromJson(json_t *rootJ) override
-    {
-        ModuleWidget::fromJson(rootJ);
-
-        // snap
-        json_t *SnapJ = json_object_get(rootJ, "Snap");
-        if (SnapJ)
-        {
-            int snap = json_is_true(SnapJ);
-            setSnap(snap);
-            
-        }
-
-    }
-    */
+    
     struct panelStyleItem : MenuItem
     {
         PolySEQ16 *module;

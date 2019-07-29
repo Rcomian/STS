@@ -15,11 +15,9 @@ extern Model *modelWaveFolder;
 extern Model *modelVU_Poly;
 extern Model *modelLFOPoly;
 extern Model *modelChords;
-extern Model *modelMidiFile;
-//extern Model *modelMixer8;
+extern Model *modelMidiPlayer;
 //extern Model *modelSEQEXP;
-//extern Model *modelOdy;
-//extern Model *modelOdyssey;
+
 
 #define MAX_POLY_CHANNELS 16
 #define GTX__N 6

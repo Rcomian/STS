@@ -26,7 +26,7 @@ using namespace std;
 using namespace smf;
 using namespace string;
 
-struct MidiFileModule : Module
+struct MidiPlayer : Module
 {
     enum ParamIds
     {
@@ -127,12 +127,12 @@ struct MidiFileModule : Module
     float GATE_Out[MAX_POLY_CHANNELS];
     float VELOCITY_Out[MAX_POLY_CHANNELS];
 
-    //inline int getChannelKnob() { return (int)(params[CHANNEL_PARAM].getValue() + 0.5f); }
+    inline int getChannelKnob() { return (int)(params[CHANNEL_PARAM].getValue() + 0.5f); }
 
-    MidiFileModule()
+    MidiPlayer()
     {
         config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS); //, cachedNotes(128)); //, cachedNotes(128);
-        configParam(CHANNEL_PARAM, 1.0f, 16.0f, 1.0f, "Midi Channel ");
+        configParam(CHANNEL_PARAM, 0.0f, 16.0f, 0.0f, "Midi Channel ");
         cachedNotes.clear();
         onReset();
     }
@@ -469,7 +469,6 @@ struct MidiFileModule : Module
 
     void loadMidiFile()
     {
-
         osdialog_filters *filters = osdialog_filters_parse("Midi File (.mid):mid;Text File (.txt):txt");
         std::string dir = lastPath.empty() ? asset::user("") : directory(lastPath);
         char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
@@ -482,15 +481,27 @@ struct MidiFileModule : Module
                 fileLoaded = true;
                 midifile.doTimeAnalysis();
                 midifile.linkNotePairs();
-                midifile.joinTracks();
-                //midifile.splitTracks();
-                midifile.splitTracksByChannel();
-
                 tracks = midifile.getTrackCount();
 
                 cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
                 //if (tracks > 1)
                 cout << "TRACKS: " << tracks << endl;
+                for (int ii = 0; ii < tracks; ii++)
+                {
+                    for (int i = 0; i < midifile[ii].getEventCount(); i++)
+                    {
+                        if (midifile[ii][i].isTrackName())
+                        {
+                            std::string content = midifile[ii][i].getMetaContent();
+                            cout << "Track # " << ii << " " << content << endl;
+                            //cout << content << endl;
+                        }
+                    }
+                }
+                midifile.joinTracks();
+                //midifile.splitTracks();
+                //midifile.splitTracksByChannel();
+
                 /*	
 				for (int track = 0; track < tracks; track++)
 				{
@@ -527,7 +538,8 @@ struct MidiFileModule : Module
     void process(const ProcessArgs &args) override
     {
         int channels = 16;
-        int Mchannel;
+        int Mchannel[100] = {};
+        const int track = 0; // midifile was flattened when loaded
         double sampleTime = args.sampleTime;
         if (btnLoadMidi.process(params[LOADMIDI_PARAM].value))
         {
@@ -553,13 +565,12 @@ struct MidiFileModule : Module
         ///////////////   tracks   =  # of tracks   .///////////////////////
 
         // "Clock"
-        //const int track = 2; // midifile was flattened when loaded   //not any more  hahaha
-        int track = params[CHANNEL_PARAM].getValue() + 0.5f;
+        //int track = params[CHANNEL_PARAM].getValue() + 0.5f;
         double readTime = 0.0;
- 
+
         if (running)
         {
-            for (int ii = 0; ii < 200; ii++)
+            for (int ii = 0; ii < 100; ii++)
             { // assumes max N events at the same time
                 if (event >= midifile[track].size())
                 {
@@ -577,9 +588,10 @@ struct MidiFileModule : Module
                 }
                 //int Mchannel = 0;
                 //Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
-                //if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble())
+                //if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble()
+                Mchannel[ii] = midifile[track][event].getChannelNibble();
                 //{
-                    
+
                 processMessage(&midifile[track][event]);
                 //}
                 event++;
@@ -599,13 +611,51 @@ struct MidiFileModule : Module
             //GATE_Out[i] = ((lastGate && running) ? 10.f : 0.f);
             //VELOCITY_Out[i] = (rescale(noteData[lastNote].velocity, 0, 127, 0.f, 10.f));
             //outputs[AFTERTOUCH_OUTPUTS + i].setVoltage(rescale(noteData[lastNote].aftertouch, 0, 127, 0.f, 10.f));
-
-            outputs[CV_OUTPUT].setChannels(channels);
-            outputs[CV_OUTPUT].writeVoltages(CV_Out);
-            outputs[GATE_OUTPUT].setChannels(channels);
-            outputs[GATE_OUTPUT].writeVoltages(GATE_Out);
-            outputs[VELOCITY_OUTPUT].setChannels(channels);
-            outputs[VELOCITY_OUTPUT].writeVoltages(VELOCITY_Out);
+            switch (Mchannel[i])
+            {
+            case 1:
+            {
+                outputs[CV_OUTPUT].setChannels(channels);
+                outputs[CV_OUTPUT].writeVoltages(CV_Out);
+                outputs[GATE_OUTPUT].setChannels(channels);
+                outputs[GATE_OUTPUT].writeVoltages(GATE_Out);
+                outputs[VELOCITY_OUTPUT].setChannels(channels);
+                outputs[VELOCITY_OUTPUT].writeVoltages(VELOCITY_Out);
+            }
+            break;
+            case 2:
+            {
+                outputs[CV_OUTPUT + 1].setChannels(channels);
+                outputs[CV_OUTPUT + 1].writeVoltages(CV_Out);
+                outputs[GATE_OUTPUT + 1].setChannels(channels);
+                outputs[GATE_OUTPUT + 1].writeVoltages(GATE_Out);
+                outputs[VELOCITY_OUTPUT + 1].setChannels(channels);
+                outputs[VELOCITY_OUTPUT + 1].writeVoltages(VELOCITY_Out);
+            }
+            break;
+            case 9:
+            {
+                outputs[CV_OUTPUT + 8].setChannels(channels);
+                outputs[CV_OUTPUT + 8].writeVoltages(CV_Out);
+                outputs[GATE_OUTPUT + 8].setChannels(channels);
+                outputs[GATE_OUTPUT + 8].writeVoltages(GATE_Out);
+                outputs[VELOCITY_OUTPUT + 8].setChannels(channels);
+                outputs[VELOCITY_OUTPUT + 8].writeVoltages(VELOCITY_Out);
+            }
+            break;
+            case 10:
+            {
+                outputs[CV_OUTPUT + 9].setChannels(channels);
+                outputs[CV_OUTPUT + 9].writeVoltages(CV_Out);
+                outputs[GATE_OUTPUT + 9].setChannels(channels);
+                outputs[GATE_OUTPUT + 9].writeVoltages(GATE_Out);
+                outputs[VELOCITY_OUTPUT + 9].setChannels(channels);
+                outputs[VELOCITY_OUTPUT + 9].writeVoltages(VELOCITY_Out);
+            }
+            break;
+            default:
+                break;
+            }
         }
 
         lightRefreshCounter++;
@@ -630,7 +680,7 @@ struct MidiFileModule : Module
 
 struct MainDisplayWidget : TransparentWidget
 {
-    MidiFileModule *module;
+    MidiPlayer *module;
     std::shared_ptr<Font> font;
     static const int displaySize = 12;
     char text[displaySize + 1];
@@ -681,17 +731,17 @@ struct MainDisplayWidget : TransparentWidget
     }
 };
 
-// MidiFileModule : module
+// MidiPlayer : module
 
-//struct MidiFileWidget : ModuleWidget {
+//struct MidiPlayerWidget : ModuleWidget {
 
-struct MidiFileWidget : ModuleWidget
+struct MidiPlayerWidget : ModuleWidget
 {
 
     /*
 	struct LoadMidiPushButton : stsBigPushButton 
 	{
-		MidiFileModule *moduleL = nullptr;
+		MidiPlayer *moduleL = nullptr;
 		void onChange(Event &e) override   //void onChange(EventChange &e) override 
 		{  
 			if (value > 0.0 && moduleL != nullptr) 
@@ -702,11 +752,11 @@ struct MidiFileWidget : ModuleWidget
 		}
 	}
 	*/
-    MidiFileWidget(MidiFileModule *module)
+    MidiPlayerWidget(MidiPlayer *module)
     {
         setModule(module);
 
-        setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midifile.svg")));
+        setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/midiplayer.svg")));
 
         // Screws
         addChild(createWidget<ScrewSilver>(Vec(15, 0)));
@@ -735,27 +785,27 @@ struct MidiFileWidget : ModuleWidget
         }
 
         // Channel knob
-        addParam(createParam<sts_Davies_snap_35_Grey>(Vec(colRulerM1, rowRulerT5 - 5), module, MidiFileModule::CHANNEL_PARAM)); //, 0.0f, 16.0f, 0.0f));    /
+        addParam(createParam<sts_Davies_snap_35_Grey>(Vec(colRulerM1, rowRulerT5 - 5), module, MidiPlayer::CHANNEL_PARAM)); //, 0.0f, 16.0f, 0.0f));    /
 
         //Main load button
-        //LoadMidiPushButton* midiButton = createDynamicParamCentered<LoadMidiPushButton>(Vec(colRulerM0, rowRulerM0), module, MidiFileModule::LOADMIDI_PARAM, 0.0f, 1.0f, 0.0f, &module->panelTheme);
-        addParam(createParam<stsBigPushButton>(Vec(colRulerM0 - 10, rowRulerM0 - 5), module, MidiFileModule::LOADMIDI_PARAM)); //, 0.0f, 1.0f, 0.0f, &module->panelTheme);
+        //LoadMidiPushButton* midiButton = createDynamicParamCentered<LoadMidiPushButton>(Vec(colRulerM0, rowRulerM0), module, MidiPlayer::LOADMIDI_PARAM, 0.0f, 1.0f, 0.0f, &module->panelTheme);
+        addParam(createParam<stsBigPushButton>(Vec(colRulerM0 - 10, rowRulerM0 - 5), module, MidiPlayer::LOADMIDI_PARAM)); //, 0.0f, 1.0f, 0.0f, &module->panelTheme);
         //midiButton->moduleL = module;
         //addParam(midiButton);
         // Load light
-        //addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(colRulerM0 + 20, rowRulerM0), module, MidiFileModule::LOADMIDI_LIGHT + 0));
-        addChild(createLight<SmallLight<GreenRedLight>>(Vec(colRulerM0 + 20, rowRulerM0 + 5), module, MidiFileModule::LOADMIDI_LIGHT + 0));
+        //addChild(createLightCentered<SmallLight<GreenRedLight>>(Vec(colRulerM0 + 20, rowRulerM0), module, MidiPlayer::LOADMIDI_LIGHT + 0));
+        addChild(createLight<SmallLight<GreenRedLight>>(Vec(colRulerM0 + 20, rowRulerM0 + 5), module, MidiPlayer::LOADMIDI_LIGHT + 0));
 
         // Reset LED bezel and light
-        addParam(createParam<stsLEDButton>(Vec(colRulerM2 + 5, rowRulerM0 + 2), module, MidiFileModule::RESET_PARAM)); //, 0.0f, 1.0f, 0.0f));
-        addChild(createLight<MediumLight<BlueLight>>(Vec(colRulerM2 + 6.5, rowRulerM0 + 3.9f), module, MidiFileModule::RESET_LIGHT));
+        addParam(createParam<stsLEDButton>(Vec(colRulerM2 + 5, rowRulerM0 + 2), module, MidiPlayer::RESET_PARAM)); //, 0.0f, 1.0f, 0.0f));
+        addChild(createLight<MediumLight<BlueLight>>(Vec(colRulerM2 + 6.5, rowRulerM0 + 3.9f), module, MidiPlayer::RESET_LIGHT));
 
         // Run LED bezel and light
-        addParam(createParam<stsLEDButton>(Vec(colRulerM3, rowRulerM0 + 2), module, MidiFileModule::RUN_PARAM)); //, 0.0f, 1.0f, 0.0f));
-        addChild(createLight<MediumLight<GreenLight>>(Vec(colRulerM3 + 1.5, rowRulerM0 + 3.9f), module, MidiFileModule::RUN_LIGHT));
+        addParam(createParam<stsLEDButton>(Vec(colRulerM3, rowRulerM0 + 2), module, MidiPlayer::RUN_PARAM)); //, 0.0f, 1.0f, 0.0f));
+        addChild(createLight<MediumLight<GreenLight>>(Vec(colRulerM3 + 1.5, rowRulerM0 + 3.9f), module, MidiPlayer::RUN_LIGHT));
 
         // Loop
-        addParam(createParamCentered<CKSS>(Vec(colRulerM4, rowRulerM0 + 8), module, MidiFileModule::LOOP_PARAM)); //, 0.0f, 1.0f, 1.0f));
+        addParam(createParamCentered<CKSS>(Vec(colRulerM4, rowRulerM0 + 8), module, MidiPlayer::LOOP_PARAM)); //, 0.0f, 1.0f, 1.0f));
 
         // channel outputs (CV, GATE, VELOCITY)
         static const int colRulerOuts0 = 43;
@@ -767,46 +817,39 @@ struct MidiFileWidget : ModuleWidget
         static const int rowRulerOuts1 = 265;
         //static const int 2rowRulerOutsSpacing = 25;
         /*
-        addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 60.1445)), module, MidiFileModule::CV_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 60.1445)), module, MidiFileModule::GATE_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 60.1445)), module, MidiFileModule::VELOCITY_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 76.1449)), module, MidiFileModule::AFTERTOUCH_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 76.1449)), module, MidiFileModule::PITCH_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 76.1449)), module, MidiFileModule::MOD_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 92.1439)), module, MidiFileModule::CLOCK_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 92.1439)), module, MidiFileModule::CLOCK_DIV_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 92.1439)), module, MidiFileModule::RETRIGGER_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 108.144)), module, MidiFileModule::START_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 108.144)), module, MidiFileModule::STOP_OUTPUT));
-		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 108.144)), module, MidiFileModule::CONTINUE_OUTPUT));
+        addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 60.1445)), module, MidiPlayer::CV_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 60.1445)), module, MidiPlayer::GATE_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 60.1445)), module, MidiPlayer::VELOCITY_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 76.1449)), module, MidiPlayer::AFTERTOUCH_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 76.1449)), module, MidiPlayer::PITCH_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 76.1449)), module, MidiPlayer::MOD_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 92.1439)), module, MidiPlayer::CLOCK_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 92.1439)), module, MidiPlayer::CLOCK_DIV_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 92.1439)), module, MidiPlayer::RETRIGGER_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(4.61505, 108.144)), module, MidiPlayer::START_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(16.214, 108.144)), module, MidiPlayer::STOP_OUTPUT));
+		addOutput(createOutput<PJ301MPort>(mm2px(Vec(27.8143, 108.144)), module, MidiPlayer::CONTINUE_OUTPUT));
         */
         for (int i = 0; i < 8; i++)
         {
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUTS + i, &module->panelTheme));
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i, &module->panelTheme));
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUT + i));                                 //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUT + i));         //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiPlayer::CV_OUTPUTS + i, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiPlayer::GATE_OUTPUTS + i, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiPlayer::VELOCITY_OUTPUTS + i, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiPlayer::CV_OUTPUT + i));                                 //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiPlayer::GATE_OUTPUT + i));         //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiPlayer::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
         }
 
         for (int i = 8; i < 16; i++)
         {
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiFileModule::CV_OUTPUTS + i, &module->panelTheme));
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUTS + i, &module->panelTheme));
-            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUTS + i, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1), module, MidiFileModule::CV_OUTPUT + i));                                 //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiFileModule::GATE_OUTPUT + i));         //, &module->panelTheme));
-            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiFileModule::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0), module, MidiPlayer::CV_OUTPUTS + i, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing), module, MidiPlayer::GATE_OUTPUTS + i, &module->panelTheme));
+            //addOutput(createDynamicPort<IMPort>(Vec(colRulerOuts0 + colRulerOutsSpacing * i, rowRulerOuts0 + rowRulerOutsSpacing * 2), module, MidiPlayer::VELOCITY_OUTPUTS + i, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1), module, MidiPlayer::CV_OUTPUT + i));                                 //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiPlayer::GATE_OUTPUT + i));         //, &module->panelTheme));
+            addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiPlayer::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
         }
     }
 };
 
-Model *modelMidiFile = createModel<MidiFileModule, MidiFileWidget>("MidiFile");
-
-/*CHANGE LOG
-
-0.6.10:
-created 
-
-*/
+Model *modelMidiPlayer = createModel<MidiPlayer, MidiPlayerWidget>("MidiPlayer");
