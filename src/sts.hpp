@@ -396,7 +396,7 @@ struct sts_Davies_25_Blue : app::SVGKnob {
 	sts_Davies_25_Blue() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Red_23.svg")));
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Blue_23.svg")));
 	}
 };
 struct sts_Davies_snap_25_Teal : app::SVGKnob {
