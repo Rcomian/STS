@@ -13,6 +13,9 @@
 using namespace std;
 using namespace rack;
 
+namespace GTX {
+namespace Chords {
+
 //============================================================================================================
 //! \brief Some settings.
 
@@ -20,12 +23,13 @@ enum Spec
 {
 	E = 12,    // ET
 	T = 25,    // ET
-	N = 6,
+	N = GTX__N
 };
 
 //============================================================================================================
 //! \brief The module.
 
+//struct GtxModule : Module
 struct Chords : Module
 {
 	enum ParamIds {
@@ -88,6 +92,8 @@ struct Chords : Module
     float outGate[MAX_POLY_CHANNELS];
     float outVoct[MAX_POLY_CHANNELS];
     int channels;
+	std::string fileDesc = "";
+	int patchNum = 1;
 
 	//--------------------------------------------------------------------------------------------------------
 	//! \brief Constructor.
@@ -95,9 +101,11 @@ struct Chords : Module
 	Chords()
 	{
 		config(NUM_PARAMS, NUM_INPUTS, N * NUM_OUTPUTS, NUM_LIGHTS);
-        configParam(PROG_PARAM, 1.0f, 12.0f, 12.0f);    
+        configParam(PROG_PARAM, 0.0f, 12.0f, 12.0f);    //, 0.0f, 12.0f, 12.0f));
 	}
-	////! \brief Save data.
+
+	//--------------------------------------------------------------------------------------------------------
+	//! \brief Save data.
 
 	json_t *dataToJson() override
 	{
@@ -161,6 +169,10 @@ struct Chords : Module
 		// Decode inputs and params
 
 		bool act_prm = false;
+
+        patchNum = params[PROG_PARAM].getValue();
+		fileDesc = "";
+		fileDesc = std::to_string(patchNum);
 
 		if (params[PROG_PARAM].getValue() < 12.0f)
 		{
@@ -276,7 +288,56 @@ struct Chords : Module
 	}
 };
 
+struct MainDisplayWidget : TransparentWidget
+{
+    Chords *module;
+    std::shared_ptr<Font> font;
+	static const int displaySize = 3;
+	char text[displaySize + 1];
 
+	MainDisplayWidget() 
+	{
+		font = APP->window->loadFont(asset::plugin(pluginInstance, "res/saxmono.ttf"));
+	}
+    
+	std::string removeExtension(std::string filename)
+    {
+        size_t lastdot = filename.find_last_of(".");
+        if (lastdot == std::string::npos)
+            return filename;
+        return filename.substr(0, lastdot);
+    }
+	void draw(const DrawArgs &args) override
+    {
+		
+        NVGcolor backgroundColor = nvgRGB(0x38, 0x38, 0x38);
+        NVGcolor borderColor = nvgRGB(0x10, 0x10, 0x10);
+		//NVGcolor textColor = nvgRGB(0xff, 0x00, 0xff);
+        nvgBeginPath(args.vg);
+        //nvgRoundedRect(args.vg, 0.0, 0.0, 30, 30, 5.0);
+        nvgFillColor(args.vg, backgroundColor);
+        nvgFill(args.vg);
+        nvgStrokeWidth(args.vg, 1.0);
+        nvgStrokeColor(args.vg, borderColor);
+        nvgStroke(args.vg);
+        nvgFontSize(args.vg, 18);
+
+        
+        nvgFontFaceId(args.vg, font->handle);
+        Vec textPos = Vec(3, 3);
+        nvgFillColor(args.vg, nvgRGBA(0xc8, 0xab, 0x37, 0xff));
+        //std::string empty = std::string(displaySize, '~');
+        //nvgText(args.vg, textPos.x, textPos.y, "~", NULL);
+        //nvgFillColor(args.vg, nvgRGBA(0x28, 0xb0, 0xf3, 0xc0));
+
+		//snprintf(text, displaySize, "%s", (module->fileDesc).c_str());
+		//std::string fileDesc = "1";
+		//nvgTextBox(args.vg, 5, 5, 10, fileDesc.c_str(), NULL);
+        //nvgText(args.vg, textPos.x, textPos.y, text, NULL);
+		nvgText(args.vg, textPos.x, textPos.y, module->fileDesc.c_str(), NULL);
+    }
+	
+};
 //============================================================================================================
 
 static double x0(double shift = 0) { return 6+6*15 + shift * 66; }
@@ -287,24 +348,38 @@ static double yd(double i, double radius = 37.0, double spill = 1.65) { return (
 //============================================================================================================
 //! \brief The widget.
 
-struct ChordsWidget : ModuleWidget
+struct GtxWidget : ModuleWidget
 {
-	ChordsWidget(Chords *module)    // : ModuleWidget(module)
+	GtxWidget(Chords *module)    // : ModuleWidget(module)
 	{
+		GTX__WIDGET();
+		//box.size = Vec(18*15, 380);
+
 		setModule(module);
 		setPanel(APP->window->loadSvg(asset::plugin(pluginInstance, "res/chords_gold.svg")));
+
+		static const float x1 = 35;
+        static const float x2 = 155;
+        static const float portY = 79;
+        static const float y1 = 30;
+
+        if (module != NULL)
+        {
+            // Main display
+            MainDisplayWidget *display = new MainDisplayWidget();
+            display->module = module;
+            display->box.pos = Vec(146, 81);
+            //display->box.size = Vec(137, 23.5f); // x characters
+            display->box.size = Vec(30, 30); // x characters
+            addChild(display);
+        }
 
 		addChild(createWidget<ScrewSilver>(Vec(15, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x-30, 0)));
 		addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x-30, 365)));
-        
-        static const float x1 = 35;
-        static const float x2 = 155;
-        static const float portY = 79;
-        static const float y1 = 30;
 
-		addParam(createParamCentered<sts_Davies_snap_35_Grey>(Vec(97.5f, portY), module, Chords::PROG_PARAM));    //, 0.0f, 12.0f, 12.0f));
+				addParam(createParamCentered<sts_Davies_snap_35_Grey>(Vec(97.5f, portY), module, Chords::PROG_PARAM));    //, 0.0f, 12.0f, 12.0f));
 		addInput(createInputCentered<sts_Port>(Vec(x1, portY ), module, Chords::PROG_INPUT));
 
 		addInput(createInputCentered<sts_Port>(Vec(x1, 350 - y1), module, Chords::VOCT_INPUT));
@@ -347,4 +422,7 @@ struct ChordsWidget : ModuleWidget
 };
 
 
-Model *modelChords = createModel<Chords, ChordsWidget>("Chords"); 
+//Model *model = createModel<GtxModule, GtxWidget>("Chords"); 
+Model *model = createModel<Chords, GtxWidget>("Chords");
+} // Chord_G1
+} // GTX
