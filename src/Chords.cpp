@@ -101,7 +101,7 @@ struct Chords : Module
 	Chords()
 	{
 		config(NUM_PARAMS, NUM_INPUTS, N * NUM_OUTPUTS, NUM_LIGHTS);
-        configParam(PROG_PARAM, 0.0f, 12.0f, 12.0f);    //, 0.0f, 12.0f, 12.0f));
+        configParam(PROG_PARAM, 1.0f, 12.0f, 1.0f);    //, 0.0f, 12.0f, 12.0f));
 	}
 
 	//--------------------------------------------------------------------------------------------------------
@@ -170,17 +170,17 @@ struct Chords : Module
 
 		bool act_prm = false;
 
-        patchNum = params[PROG_PARAM].getValue();
+        patchNum = clamp((params[PROG_PARAM].getValue() + inputs[PROG_INPUT].getVoltage()),1.f,12.f);
 		fileDesc = "";
 		fileDesc = std::to_string(patchNum);
 
-		if (params[PROG_PARAM].getValue() < 12.0f)
-		{
-			prg_prm.step(params[PROG_PARAM].getValue() / 12.0f);
+		//if (patchNum < 12.0f)
+		//{
+			prg_prm.step(patchNum / 12.0f);
 			act_prm = true;
-		}
+		//}
 
-		prg_cv.step(inputs[PROG_INPUT].getVoltage());
+		//prg_cv.step(inputs[PROG_INPUT].getVoltage());
 		input .step(inputs[VOCT_INPUT].getVoltage());
 
 		float gate = clamp(inputs[GATE_INPUT].getNormalVoltage(10.0f), 0.0f, 10.0f);
@@ -379,7 +379,7 @@ struct GtxWidget : ModuleWidget
 		addChild(createWidget<ScrewSilver>(Vec(15, 365)));
 		addChild(createWidget<ScrewSilver>(Vec(box.size.x-30, 365)));
 
-				addParam(createParamCentered<sts_Davies_snap_35_Grey>(Vec(97.5f, portY), module, Chords::PROG_PARAM));    //, 0.0f, 12.0f, 12.0f));
+		addParam(createParamCentered<sts_Davies_snap_35_Grey>(Vec(97.5f, portY), module, Chords::PROG_PARAM));    //, 0.0f, 12.0f, 12.0f));
 		addInput(createInputCentered<sts_Port>(Vec(x1, portY ), module, Chords::PROG_INPUT));
 
 		addInput(createInputCentered<sts_Port>(Vec(x1, 350 - y1), module, Chords::VOCT_INPUT));
