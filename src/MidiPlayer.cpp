@@ -887,14 +887,14 @@ struct MidiPlayer : Module
 
                         for (int i = 0; i < midifile[ii].getEventCount(); i++)
                         {
-                                if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
-                                    poly += 1;
-                                    if (poly > maxpoly) {
-                                        maxpoly = poly;
-                                    }
-                                } else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
-                                    poly -= 1;
+                            if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
+                                poly += 1;
+                                if (poly > maxpoly) {
+                                    maxpoly = poly;
                                 }
+                            } else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
+                                poly -= 1;
+                            }
                         }
 
                         PlaybackTrack playbackTrack;
@@ -907,7 +907,7 @@ struct MidiPlayer : Module
                         playbackTrack.midiCV.setPolyMode(MIDI_CV::RESET_MODE);
                         playbackTracks.push_back(playbackTrack);
                     }
-                    
+
                 }
 
                 cout << "Playback tracks: " << playbackTracks.size() << endl;
