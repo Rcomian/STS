@@ -20,11 +20,20 @@
 #include <iostream>
 #include <algorithm>
 #include "string.hpp"
+#include <set>
 
 using namespace rack;
 using namespace std;
 using namespace smf;
 using namespace string;
+
+struct PlaybackTrack
+{
+	int track;
+	int channel;
+	int poly;
+	std::string name;
+};
 
 struct MidiPlayer : Module
 {
@@ -89,6 +98,9 @@ struct MidiPlayer : Module
         MPE_MODE,
         NUM_MODES
     };
+
+		// Midi track playback information
+		std::vector<PlaybackTrack> playbackTracks;
 
     // Need to save
     int panelTheme = 0;
@@ -486,18 +498,54 @@ struct MidiPlayer : Module
                 cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
                 //if (tracks > 1)
                 cout << "TRACKS: " << tracks << endl;
+								playbackTracks.clear();
                 for (int ii = 0; ii < tracks; ii++)
                 {
+										std::set<int> channels;
+										std::string name;
                     for (int i = 0; i < midifile[ii].getEventCount(); i++)
                     {
                         if (midifile[ii][i].isTrackName())
                         {
-                            std::string content = midifile[ii][i].getMetaContent();
-                            cout << "Track # " << ii << " " << content << endl;
+                            name = midifile[ii][i].getMetaContent();
+                            // cout << "Track # " << ii << " " << name << endl;
                             //cout << content << endl;
-                        }
+                        } else if (midifile[ii][i].isNoteOn()) {
+													channels.insert(midifile[ii][i].getChannelNibble());
+												}
                     }
+
+										for (int channel : channels) {
+												int poly = 0;
+												int maxpoly = 0;
+
+												for (int i = 0; i < midifile[ii].getEventCount(); i++)
+												{
+														if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
+															poly += 1;
+															if (poly > maxpoly) {
+																maxpoly = poly;
+															}
+														} else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
+															poly -= 1;
+														}
+												}
+
+												PlaybackTrack playbackTrack;
+												playbackTrack.name = name;
+												playbackTrack.channel = channel;
+												playbackTrack.poly = maxpoly;
+												playbackTrack.track = ii;
+												playbackTracks.push_back(playbackTrack);
+										}
+
                 }
+
+								cout << "Playback tracks: " << playbackTracks.size() << endl;
+								for (auto& playbackTrack : playbackTracks) {
+									cout << "Playback track: " << playbackTrack.track << "/" << playbackTrack.channel << "@" << playbackTrack.poly << " " << playbackTrack.name << endl;
+								}
+
                 midifile.joinTracks();
                 //midifile.splitTracks();
                 //midifile.splitTracksByChannel();
