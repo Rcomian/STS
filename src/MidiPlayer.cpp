@@ -465,7 +465,10 @@ struct MidiPlayer : Module
     int tracks;
     unsigned int lightRefreshCounter = 0;
     float resetLight = 0.0f;
+    bool doMidiFileOpen = false;
+    bool doMidiFileLoad = false;
     bool fileLoaded = false;
+    std::string path;
     MidiFile midifile;
     dsp::SchmittTrigger runningTrigger;
     dsp::SchmittTrigger resetTrigger;
@@ -497,6 +500,8 @@ struct MidiPlayer : Module
 
         for (auto& playbackTrack : playbackTracks) {
             playbackTrack.midiCV.onReset();
+            playbackTrack.midiCV.setChannels(playbackTrack.poly);
+            playbackTrack.midiCV.setPolyMode(MIDI_CV::RESET_MODE);
         }
     }
 
@@ -528,108 +533,99 @@ struct MidiPlayer : Module
 
     void loadMidiFile()
     {
-        osdialog_filters *filters = osdialog_filters_parse("Midi File (.mid):mid;Text File (.txt):txt");
-        std::string dir = lastPath.empty() ? asset::user("") : directory(lastPath);
-        char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
-        if (path)
+        if (midifile.read(lastPath))
         {
-            lastPath = path;
-            lastFilename = filename(path);
-            if (midifile.read(path))
-            {
-                fileLoaded = true;
-                midifile.doTimeAnalysis();
-                midifile.linkNotePairs();
-                tracks = midifile.getTrackCount();
+            fileLoaded = true;
+            midifile.doTimeAnalysis();
+            midifile.linkNotePairs();
+            tracks = midifile.getTrackCount();
 
-                cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
-                //if (tracks > 1)
-                cout << "TRACKS: " << tracks << endl;
-				playbackTracks.clear();
-                for (int ii = 0; ii < tracks; ii++)
+            cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
+            //if (tracks > 1)
+            cout << "TRACKS: " << tracks << endl;
+            playbackTracks.clear();
+            for (int ii = 0; ii < tracks; ii++)
+            {
+                std::set<int> channels;
+                std::string name;
+                for (int i = 0; i < midifile[ii].getEventCount(); i++)
                 {
-                    std::set<int> channels;
-                    std::string name;
+                    if (midifile[ii][i].isTrackName())
+                    {
+                        name = midifile[ii][i].getMetaContent();
+                        // cout << "Track # " << ii << " " << name << endl;
+                        //cout << content << endl;
+                    } else if (midifile[ii][i].isNoteOn()) {
+                        channels.insert(midifile[ii][i].getChannelNibble());
+                    }
+                }
+
+                for (int channel : channels) {
+                    int poly = 0;
+                    int maxpoly = 0;
+
                     for (int i = 0; i < midifile[ii].getEventCount(); i++)
                     {
-                        if (midifile[ii][i].isTrackName())
-                        {
-                            name = midifile[ii][i].getMetaContent();
-                            // cout << "Track # " << ii << " " << name << endl;
-                            //cout << content << endl;
-                        } else if (midifile[ii][i].isNoteOn()) {
-                            channels.insert(midifile[ii][i].getChannelNibble());
-                        }
-                    }
-
-                    for (int channel : channels) {
-                        int poly = 0;
-                        int maxpoly = 0;
-
-                        for (int i = 0; i < midifile[ii].getEventCount(); i++)
-                        {
-                            if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
-                                poly += 1;
-                                if (poly > maxpoly) {
-                                    maxpoly = poly;
-                                }
-                            } else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
-                                poly -= 1;
+                        if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
+                            poly += 1;
+                            if (poly > maxpoly) {
+                                maxpoly = poly;
                             }
+                        } else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
+                            poly -= 1;
                         }
-
-                        PlaybackTrack playbackTrack;
-                        playbackTrack.name = name;
-                        playbackTrack.channel = channel;
-                        playbackTrack.poly = maxpoly;
-                        playbackTrack.track = ii;
-                        playbackTrack.midiCV.onReset();
-                        playbackTrack.midiCV.setChannels(maxpoly);
-                        playbackTrack.midiCV.setPolyMode(MIDI_CV::RESET_MODE);
-                        playbackTracks.push_back(playbackTrack);
                     }
 
+                    PlaybackTrack playbackTrack;
+                    playbackTrack.name = name;
+                    playbackTrack.channel = channel;
+                    playbackTrack.poly = maxpoly;
+                    playbackTrack.track = ii;
+                    playbackTrack.midiCV.onReset();
+                    playbackTrack.midiCV.setChannels(maxpoly);
+                    playbackTrack.midiCV.setPolyMode(MIDI_CV::RESET_MODE);
+                    playbackTracks.push_back(playbackTrack);
                 }
 
-                cout << "Playback tracks: " << playbackTracks.size() << endl;
-                for (auto& playbackTrack : playbackTracks) {
-                    cout << "Playback track: " << playbackTrack.track << "/" << playbackTrack.channel << "@" << playbackTrack.poly << " " << playbackTrack.name << endl;
-                }
-
-                midifile.joinTracks();
-                //midifile.splitTracks();
-                //midifile.splitTracksByChannel();
-
-                /*	
-				for (int track = 0; track < tracks; track++)
-				{
-					if (tracks > 1)
-						cout << "\nTrack " << track << endl;
-						cout << "Tick\tSeconds\tDur\tMessage" << endl;
-					for (int eventIndex = 0; eventIndex < midifile[track].size(); eventIndex++)
-					{
-						cout << dec << midifile[track][eventIndex].tick;
-						cout << '\t' << dec << midifile[track][eventIndex].seconds;
-						cout << '\t';
-						if (midifile[track][eventIndex].isNoteOn())
-							cout << midifile[track][eventIndex].getDurationInSeconds();
-						cout << '\t' << hex;
-						for (unsigned int i = 0; i < midifile[track][eventIndex].size(); i++)
-							cout << (int)midifile[track][eventIndex][i] << ' ';
-						cout << endl;
-					}
-				}
-				cout << "event count: " << dec << midifile[0].size() << endl;
-				*/
             }
-            else
-                fileLoaded = false;
-            free(path);
-            running = false;
-            time = 0.0;
-            event = 0;
+
+            cout << "Playback tracks: " << playbackTracks.size() << endl;
+            for (auto& playbackTrack : playbackTracks) {
+                cout << "Playback track: " << playbackTrack.track << "/" << playbackTrack.channel << "@" << playbackTrack.poly << " " << playbackTrack.name << endl;
+            }
+
+            midifile.joinTracks();
+            //midifile.splitTracks();
+            //midifile.splitTracksByChannel();
+
+            /*	
+            for (int track = 0; track < tracks; track++)
+            {
+                if (tracks > 1)
+                    cout << "\nTrack " << track << endl;
+                    cout << "Tick\tSeconds\tDur\tMessage" << endl;
+                for (int eventIndex = 0; eventIndex < midifile[track].size(); eventIndex++)
+                {
+                    cout << dec << midifile[track][eventIndex].tick;
+                    cout << '\t' << dec << midifile[track][eventIndex].seconds;
+                    cout << '\t';
+                    if (midifile[track][eventIndex].isNoteOn())
+                        cout << midifile[track][eventIndex].getDurationInSeconds();
+                    cout << '\t' << hex;
+                    for (unsigned int i = 0; i < midifile[track][eventIndex].size(); i++)
+                        cout << (int)midifile[track][eventIndex][i] << ' ';
+                    cout << endl;
+                }
+            }
+            cout << "event count: " << dec << midifile[0].size() << endl;
+            */
         }
-        osdialog_filters_free(filters);
+        else
+            fileLoaded = false;
+
+        running = false;
+        time = 0.0;
+        event = 0;
     }
 
     // Advances the module by 1 audio frame with duration 1.0 / args.sampleRate
@@ -639,7 +635,11 @@ struct MidiPlayer : Module
         double sampleTime = args.sampleTime;
         if (btnLoadMidi.process(params[LOADMIDI_PARAM].value))
         {
+            doMidiFileOpen = true;
+        }
 
+        if (doMidiFileLoad) {
+            doMidiFileLoad = false;
             loadMidiFile();
         }
         //********** Buttons, knobs, switches and inputs **********
@@ -884,6 +884,25 @@ struct MidiPlayerWidget : ModuleWidget
             addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1), module, MidiPlayer::CV_OUTPUT + i));                                 //, &module->panelTheme));
             addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing), module, MidiPlayer::GATE_OUTPUT + i));         //, &module->panelTheme));
             addOutput(createOutput<sts_Port>(Vec(colRulerOuts0 + colRulerOutsSpacing * (i - 8), rowRulerOuts1 + rowRulerOutsSpacing * 2), module, MidiPlayer::VELOCITY_OUTPUT + i)); //, &module->panelTheme));
+        }
+    }
+
+    void step() override {
+        ModuleWidget::step();
+        MidiPlayer* midiPlayer = (MidiPlayer*)this->module;
+        if (midiPlayer && midiPlayer->doMidiFileOpen) {
+            midiPlayer->doMidiFileOpen = false;
+
+            osdialog_filters *filters = osdialog_filters_parse("Midi File (.mid):mid;Text File (.txt):txt");
+            std::string dir = midiPlayer->lastPath.empty() ? asset::user("") : directory(midiPlayer->lastPath);
+            char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
+            if (path) {
+                midiPlayer->lastPath = path;
+                midiPlayer->lastFilename = filename(path);
+                midiPlayer->doMidiFileLoad = true;
+            }
+            free(path);
+            osdialog_filters_free(filters);
         }
     }
 };
