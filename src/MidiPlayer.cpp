@@ -27,12 +27,373 @@ using namespace std;
 using namespace smf;
 using namespace string;
 
+
+struct MIDI_CV {
+	enum OutputIds {
+		CV_OUTPUT,
+		GATE_OUTPUT,
+		VELOCITY_OUTPUT,
+	};
+
+	int channels;
+	enum PolyMode {
+		ROTATE_MODE,
+		REUSE_MODE,
+		RESET_MODE,
+		MPE_MODE,
+		NUM_POLY_MODES
+	};
+	PolyMode polyMode;
+
+	uint32_t clock = 0;
+	int clockDivision;
+
+	bool pedal;
+	// Indexed by channel
+	uint8_t notes[16];
+	bool gates[16];
+	uint8_t velocities[16];
+	uint8_t aftertouches[16];
+	std::vector<uint8_t> heldNotes;
+
+	int rotateIndex;
+
+	// 16 channels for MPE. When MPE is disabled, only the first channel is used.
+	uint16_t pitches[16];
+	uint8_t mods[16];
+	dsp::ExponentialFilter pitchFilters[16];
+	dsp::ExponentialFilter modFilters[16];
+
+	dsp::PulseGenerator clockPulse;
+	dsp::PulseGenerator clockDividerPulse;
+	dsp::PulseGenerator retriggerPulses[16];
+	dsp::PulseGenerator startPulse;
+	dsp::PulseGenerator stopPulse;
+	dsp::PulseGenerator continuePulse;
+
+	MIDI_CV() {
+		heldNotes.reserve(128);
+		for (int c = 0; c < 16; c++) {
+			pitchFilters[c].lambda = 1 / 0.01f;
+			modFilters[c].lambda = 1 / 0.01f;
+		}
+		onReset();
+	}
+
+	void onReset() {
+		channels = 1;
+		polyMode = ROTATE_MODE;
+		clockDivision = 24;
+		panic();
+	}
+
+	/** Resets performance state */
+	void panic() {
+		pedal = false;
+		for (int c = 0; c < 16; c++) {
+			notes[c] = 60;
+			gates[c] = false;
+			velocities[c] = 0;
+			aftertouches[c] = 0;
+			pitches[c] = 8192;
+			mods[c] = 0;
+			pitchFilters[c].reset();
+			modFilters[c].reset();
+		}
+		pedal = false;
+		rotateIndex = -1;
+		heldNotes.clear();
+	}
+
+	void process(const Module::ProcessArgs &args, Output **outputs) {
+
+		outputs[CV_OUTPUT]->setChannels(channels);
+		outputs[GATE_OUTPUT]->setChannels(channels);
+		outputs[VELOCITY_OUTPUT]->setChannels(channels);
+		for (int c = 0; c < channels; c++) {
+			bool retrigger = retriggerPulses[c].process(args.sampleTime);
+
+			outputs[CV_OUTPUT]->setVoltage((notes[c] - 60.f) / 12.f, c);
+			outputs[GATE_OUTPUT]->setVoltage(gates[c] && !retrigger ? 10.f : 0.f, c);
+			outputs[VELOCITY_OUTPUT]->setVoltage(rescale(velocities[c], 0, 127, 0.f, 10.f), c);
+		}
+
+	}
+
+	void processMessage(midi::Message msg) {
+		// DEBUG("MIDI: %01x %01x %02x %02x", msg.getStatus(), msg.getChannel(), msg.getNote(), msg.getValue());
+
+		switch (msg.getStatus()) {
+			// note off
+			case 0x8: {
+				releaseNote(msg.getNote());
+			} break;
+			// note on
+			case 0x9: {
+				if (msg.getValue() > 0) {
+					int c = (polyMode == MPE_MODE) ? msg.getChannel() : assignChannel(msg.getNote());
+					velocities[c] = msg.getValue();
+					pressNote(msg.getNote(), c);
+				}
+				else {
+					// For some reason, some keyboards send a "note on" event with a velocity of 0 to signal that the key has been released.
+					releaseNote(msg.getNote());
+				}
+			} break;
+			// key pressure
+			case 0xa: {
+				// Set the aftertouches with the same note
+				// TODO Should we handle the MPE case differently?
+				for (int c = 0; c < 16; c++) {
+					if (notes[c] == msg.getNote())
+						aftertouches[c] = msg.getValue();
+				}
+			} break;
+			// cc
+			case 0xb: {
+				processCC(msg);
+			} break;
+			// channel pressure
+			case 0xd: {
+				if (polyMode == MPE_MODE) {
+					// Set the channel aftertouch
+					aftertouches[msg.getChannel()] = msg.getNote();
+				}
+				else {
+					// Set all aftertouches
+					for (int c = 0; c < 16; c++) {
+						aftertouches[c] = msg.getNote();
+					}
+				}
+			} break;
+			// pitch wheel
+			case 0xe: {
+				int c = (polyMode == MPE_MODE) ? msg.getChannel() : 0;
+				pitches[c] = ((uint16_t) msg.getValue() << 7) | msg.getNote();
+			} break;
+			case 0xf: {
+				processSystem(msg);
+			} break;
+			default: break;
+		}
+	}
+
+	void processCC(midi::Message msg) {
+		switch (msg.getNote()) {
+			// mod
+			case 0x01: {
+				int c = (polyMode == MPE_MODE) ? msg.getChannel() : 0;
+				mods[c] = msg.getValue();
+			} break;
+			// sustain
+			case 0x40: {
+				if (msg.getValue() >= 64)
+					pressPedal();
+				else
+					releasePedal();
+			} break;
+			default: break;
+		}
+	}
+
+	void processSystem(midi::Message msg) {
+		switch (msg.getChannel()) {
+			// Timing
+			case 0x8: {
+				clockPulse.trigger(1e-3);
+				if (clock % clockDivision == 0) {
+					clockDividerPulse.trigger(1e-3);
+				}
+				clock++;
+			} break;
+			// Start
+			case 0xa: {
+				startPulse.trigger(1e-3);
+				clock = 0;
+			} break;
+			// Continue
+			case 0xb: {
+				continuePulse.trigger(1e-3);
+			} break;
+			// Stop
+			case 0xc: {
+				stopPulse.trigger(1e-3);
+				clock = 0;
+			} break;
+			default: break;
+		}
+	}
+
+	int assignChannel(uint8_t note) {
+		if (channels == 1)
+			return 0;
+
+		switch (polyMode) {
+			case REUSE_MODE: {
+				// Find channel with the same note
+				for (int c = 0; c < channels; c++) {
+					if (notes[c] == note)
+						return c;
+				}
+			} // fallthrough
+
+			case ROTATE_MODE: {
+				// Find next available channel
+				for (int i = 0; i < channels; i++) {
+					rotateIndex++;
+					if (rotateIndex >= channels)
+						rotateIndex = 0;
+					if (!gates[rotateIndex])
+						return rotateIndex;
+				}
+				// No notes are available. Advance rotateIndex once more.
+				rotateIndex++;
+				if (rotateIndex >= channels)
+					rotateIndex = 0;
+				return rotateIndex;
+			} break;
+
+			case RESET_MODE: {
+				for (int c = 0; c < channels; c++) {
+					if (!gates[c])
+						return c;
+				}
+				return channels - 1;
+			} break;
+
+			case MPE_MODE: {
+				// This case is handled by querying the MIDI message channel.
+				return 0;
+			} break;
+
+			default: return 0;
+		}
+	}
+
+	void pressNote(uint8_t note, int channel) {
+		// Remove existing similar note
+		auto it = std::find(heldNotes.begin(), heldNotes.end(), note);
+		if (it != heldNotes.end())
+			heldNotes.erase(it);
+		// Push note
+		heldNotes.push_back(note);
+		// Set note
+		notes[channel] = note;
+		gates[channel] = true;
+		retriggerPulses[channel].trigger(1e-3);
+	}
+
+	void releaseNote(uint8_t note) {
+		// Remove the note
+		auto it = std::find(heldNotes.begin(), heldNotes.end(), note);
+		if (it != heldNotes.end())
+			heldNotes.erase(it);
+		// Hold note if pedal is pressed
+		if (pedal)
+			return;
+		// Turn off gate of all channels with note
+		for (int c = 0; c < channels; c++) {
+			if (notes[c] == note) {
+				gates[c] = false;
+			}
+		}
+		// Set last note if monophonic
+		if (channels == 1) {
+			if (note == notes[0] && !heldNotes.empty()) {
+				uint8_t lastNote = heldNotes.back();
+				notes[0] = lastNote;
+				gates[0] = true;
+				return;
+			}
+		}
+	}
+
+	void pressPedal() {
+		pedal = true;
+	}
+
+	void releasePedal() {
+		pedal = false;
+		// Clear all gates
+		for (int c = 0; c < 16; c++) {
+			gates[c] = false;
+		}
+		// Add back only the gates from heldNotes
+		for (uint8_t note : heldNotes) {
+			// Find note's channels
+			for (int c = 0; c < channels; c++) {
+				if (notes[c] == note) {
+					gates[c] = true;
+				}
+			}
+		}
+		// Set last note if monophonic
+		if (channels == 1) {
+			if (!heldNotes.empty()) {
+				uint8_t lastNote = heldNotes.back();
+				notes[0] = lastNote;
+			}
+		}
+	}
+
+	void setChannels(int channels) {
+		if (channels == this->channels)
+			return;
+		this->channels = channels;
+		panic();
+	}
+
+	void setPolyMode(PolyMode polyMode) {
+		if (polyMode == this->polyMode)
+			return;
+		this->polyMode = polyMode;
+		panic();
+	}
+
+	json_t *dataToJson() {
+		json_t *rootJ = json_object();
+		json_object_set_new(rootJ, "channels", json_integer(channels));
+		json_object_set_new(rootJ, "polyMode", json_integer(polyMode));
+		json_object_set_new(rootJ, "clockDivision", json_integer(clockDivision));
+		// Saving/restoring pitch and mod doesn't make much sense for MPE.
+		if (polyMode != MPE_MODE) {
+			json_object_set_new(rootJ, "lastPitch", json_integer(pitches[0]));
+			json_object_set_new(rootJ, "lastMod", json_integer(mods[0]));
+		}
+		return rootJ;
+	}
+
+	void dataFromJson(json_t *rootJ) {
+		json_t *channelsJ = json_object_get(rootJ, "channels");
+		if (channelsJ)
+			setChannels(json_integer_value(channelsJ));
+
+		json_t *polyModeJ = json_object_get(rootJ, "polyMode");
+		if (polyModeJ)
+			polyMode = (PolyMode) json_integer_value(polyModeJ);
+
+		json_t *clockDivisionJ = json_object_get(rootJ, "clockDivision");
+		if (clockDivisionJ)
+			clockDivision = json_integer_value(clockDivisionJ);
+
+		json_t *lastPitchJ = json_object_get(rootJ, "lastPitch");
+		if (lastPitchJ)
+			pitches[0] = json_integer_value(lastPitchJ);
+
+		json_t *lastModJ = json_object_get(rootJ, "lastMod");
+		if (lastModJ)
+			mods[0] = json_integer_value(lastModJ);
+
+	}
+};
+
 struct PlaybackTrack
 {
 	int track;
 	int channel;
 	int poly;
 	std::string name;
+	MIDI_CV midiCV;
 };
 
 struct MidiPlayer : Module
@@ -163,6 +524,11 @@ struct MidiPlayer : Module
     {
         time = 0.0;
         event = 0;
+
+        for (auto& playbackTrack : playbackTracks) {
+            playbackTrack.midiCV.onReset();
+        }
+
         //
         cachedNotes.clear();
         for (int i = 0; i < 16; i++)
@@ -501,8 +867,8 @@ struct MidiPlayer : Module
 								playbackTracks.clear();
                 for (int ii = 0; ii < tracks; ii++)
                 {
-										std::set<int> channels;
-										std::string name;
+                    std::set<int> channels;
+                    std::string name;
                     for (int i = 0; i < midifile[ii].getEventCount(); i++)
                     {
                         if (midifile[ii][i].isTrackName())
@@ -511,40 +877,43 @@ struct MidiPlayer : Module
                             // cout << "Track # " << ii << " " << name << endl;
                             //cout << content << endl;
                         } else if (midifile[ii][i].isNoteOn()) {
-													channels.insert(midifile[ii][i].getChannelNibble());
-												}
+                            channels.insert(midifile[ii][i].getChannelNibble());
+                        }
                     }
 
-										for (int channel : channels) {
-												int poly = 0;
-												int maxpoly = 0;
+                    for (int channel : channels) {
+                        int poly = 0;
+                        int maxpoly = 0;
 
-												for (int i = 0; i < midifile[ii].getEventCount(); i++)
-												{
-														if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
-															poly += 1;
-															if (poly > maxpoly) {
-																maxpoly = poly;
-															}
-														} else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
-															poly -= 1;
-														}
-												}
+                        for (int i = 0; i < midifile[ii].getEventCount(); i++)
+                        {
+                                if (midifile[ii][i].isNoteOn() && midifile[ii][i].getChannelNibble() == channel) {
+                                    poly += 1;
+                                    if (poly > maxpoly) {
+                                        maxpoly = poly;
+                                    }
+                                } else if (midifile[ii][i].isNoteOff() && midifile[ii][i].getChannelNibble() == channel) {
+                                    poly -= 1;
+                                }
+                        }
 
-												PlaybackTrack playbackTrack;
-												playbackTrack.name = name;
-												playbackTrack.channel = channel;
-												playbackTrack.poly = maxpoly;
-												playbackTrack.track = ii;
-												playbackTracks.push_back(playbackTrack);
-										}
-
+                        PlaybackTrack playbackTrack;
+                        playbackTrack.name = name;
+                        playbackTrack.channel = channel;
+                        playbackTrack.poly = maxpoly;
+                        playbackTrack.track = ii;
+                        playbackTrack.midiCV.onReset();
+                        playbackTrack.midiCV.setChannels(maxpoly);
+                        playbackTrack.midiCV.setPolyMode(MIDI_CV::RESET_MODE);
+                        playbackTracks.push_back(playbackTrack);
+                    }
+                    
                 }
 
-								cout << "Playback tracks: " << playbackTracks.size() << endl;
-								for (auto& playbackTrack : playbackTracks) {
-									cout << "Playback track: " << playbackTrack.track << "/" << playbackTrack.channel << "@" << playbackTrack.poly << " " << playbackTrack.name << endl;
-								}
+                cout << "Playback tracks: " << playbackTracks.size() << endl;
+                for (auto& playbackTrack : playbackTracks) {
+                    cout << "Playback track: " << playbackTrack.track << "/" << playbackTrack.channel << "@" << playbackTrack.poly << " " << playbackTrack.name << endl;
+                }
 
                 midifile.joinTracks();
                 //midifile.splitTracks();
@@ -586,7 +955,7 @@ struct MidiPlayer : Module
     void process(const ProcessArgs &args) override
     {
         int channels = 16;
-        int Mchannel[100] = {};
+				int Mchannel[100] = {};
         const int track = 0; // midifile was flattened when loaded
         double sampleTime = args.sampleTime;
         if (btnLoadMidi.process(params[LOADMIDI_PARAM].value))
@@ -616,95 +985,42 @@ struct MidiPlayer : Module
         //int track = params[CHANNEL_PARAM].getValue() + 0.5f;
         double readTime = 0.0;
 
-        if (running)
-        {
-            for (int ii = 0; ii < 100; ii++)
-            { // assumes max N events at the same time
-                if (event >= midifile[track].size())
-                {
-                    if (params[LOOP_PARAM].getValue() < 0.5f)
-                        running = false;
-                    resetPlayer();
-                    break;
-                }
+        time += args.sampleTime;
 
-                readTime = midifile[track][event].seconds;
-                if (readTime > time)
-                {
-                    time += sampleTime;
-                    break;
-                }
-                //int Mchannel = 0;
-                //Mchannel = getChannelKnob() - 1; // getChannelKnob is 1 indexed
-                //if (Mchannel < 0 || Mchannel == midifile[track][event].getChannelNibble()
-                Mchannel[ii] = midifile[track][event].getChannelNibble();
-                //{
+        while (running && event < midifile[track].size() && time > midifile[track][event].seconds) {
 
-                processMessage(&midifile[track][event]);
-                //}
-                event++;
-            }
-        }
+            auto playbackTrack = std::find_if(playbackTracks.begin(), playbackTracks.end(), [this, track](const PlaybackTrack& playbackTrack) -> bool {
+                    return playbackTrack.track == midifile[track][event].track && playbackTrack.channel == midifile[track][event].getChannelNibble();
+            });
 
-        for (int i = 0; i < 16; i++)
+            if (playbackTrack != playbackTracks.end()) {
+                midi::Message msg;
+                msg.bytes[0] = midifile[track][event][0];
+                msg.bytes[1] = midifile[track][event][1];
+                msg.bytes[2] = midifile[track][event][2];
+                playbackTrack->midiCV.processMessage(msg);
+            }
 
-        {
+            event++;
 
-            uint8_t lastNote = notes[i];
-            uint8_t lastGate = (gates[i] || pedalgates[i]);
-            CV_Out[i] = ((lastNote - 60) / 12.f);
-            GATE_Out[i] = ((lastGate && running) ? 10.f : 0.f);
-            VELOCITY_Out[i] = (rescale(noteData[lastNote].velocity, 0, 127, 0.f, 10.f));
-            //CV_Out[i] = ((lastNote - 60) / 12.f);
-            //GATE_Out[i] = ((lastGate && running) ? 10.f : 0.f);
-            //VELOCITY_Out[i] = (rescale(noteData[lastNote].velocity, 0, 127, 0.f, 10.f));
-            //outputs[AFTERTOUCH_OUTPUTS + i].setVoltage(rescale(noteData[lastNote].aftertouch, 0, 127, 0.f, 10.f));
-            switch (Mchannel[i])
+            if (event >= midifile[track].size())
             {
-            case 1:
-            {
-                outputs[CV_OUTPUT].setChannels(channels);
-                outputs[CV_OUTPUT].writeVoltages(CV_Out);
-                outputs[GATE_OUTPUT].setChannels(channels);
-                outputs[GATE_OUTPUT].writeVoltages(GATE_Out);
-                outputs[VELOCITY_OUTPUT].setChannels(channels);
-                outputs[VELOCITY_OUTPUT].writeVoltages(VELOCITY_Out);
-            }
-            break;
-            case 2:
-            {
-                outputs[CV_OUTPUT + 1].setChannels(channels);
-                outputs[CV_OUTPUT + 1].writeVoltages(CV_Out);
-                outputs[GATE_OUTPUT + 1].setChannels(channels);
-                outputs[GATE_OUTPUT + 1].writeVoltages(GATE_Out);
-                outputs[VELOCITY_OUTPUT + 1].setChannels(channels);
-                outputs[VELOCITY_OUTPUT + 1].writeVoltages(VELOCITY_Out);
-            }
-            break;
-            case 9:
-            {
-                outputs[CV_OUTPUT + 8].setChannels(channels);
-                outputs[CV_OUTPUT + 8].writeVoltages(CV_Out);
-                outputs[GATE_OUTPUT + 8].setChannels(channels);
-                outputs[GATE_OUTPUT + 8].writeVoltages(GATE_Out);
-                outputs[VELOCITY_OUTPUT + 8].setChannels(channels);
-                outputs[VELOCITY_OUTPUT + 8].writeVoltages(VELOCITY_Out);
-            }
-            break;
-            case 10:
-            {
-                outputs[CV_OUTPUT + 9].setChannels(channels);
-                outputs[CV_OUTPUT + 9].writeVoltages(CV_Out);
-                outputs[GATE_OUTPUT + 9].setChannels(channels);
-                outputs[GATE_OUTPUT + 9].writeVoltages(GATE_Out);
-                outputs[VELOCITY_OUTPUT + 9].setChannels(channels);
-                outputs[VELOCITY_OUTPUT + 9].writeVoltages(VELOCITY_Out);
-            }
-            break;
-            default:
+                if (params[LOOP_PARAM].getValue() < 0.5f)
+                    running = false;
+                resetPlayer();
                 break;
             }
         }
+
+        for (int i = 0; i < (int)playbackTracks.size() && i < 16; i++) {
+            Output* outs[3] {};
+            outs[0] = &outputs[CV_OUTPUT + i];
+            outs[1] = &outputs[GATE_OUTPUT + i];
+            outs[2] = &outputs[VELOCITY_OUTPUT + i];
+            playbackTracks[i].midiCV.process(args, outs);
+        }
+
+
 
         lightRefreshCounter++;
         if (lightRefreshCounter >= displayRefreshStepSkips)
