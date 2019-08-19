@@ -54,6 +54,12 @@
 			"tags": ["LFO", "Polyphonic"]
 		},
 		{
+			"slug": "LFOPolySP",
+			"name": "LFOPolySnapPhase",
+			"description": "Poly LFO 16 with Snap Phase",
+			"tags": ["LFO", "Polyphonic"]
+		},
+		{
 			"slug": "Chords",
 			"name": "Chords",
 			"description": "Poly Chords",
