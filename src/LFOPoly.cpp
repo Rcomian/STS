@@ -168,10 +168,12 @@ struct LFOPoly : Module
     float pwParam[16];
     float phParam[16];
     float fmParam = 0;
+    float resetParam[16];
     float_4 pitch;
     float_4 wave;
     float_4 pw;
     float_4 pha;
+    float_4 resetSimd;
 
     LFOPoly()
     {
@@ -299,18 +301,27 @@ struct LFOPoly : Module
 
         for (int i = 0; i < channels; ++i)
         {
-            waveParam[i] = params[WAVE_PARAM + i].getValue(); //&AUDIO_MIX[c]
+            waveParam[i] = params[WAVE_PARAM + i].getValue(); 
             freqParam[i] = params[FREQ_PARAM + i].getValue();
             pwParam[i] = params[PW_PARAM + i].getValue();
             phParam[i] = params[PH_PARAM + i].getValue();
-            
+            //if (resetTrigger.process(params[RESET_PARAM].getValue()))
+            //{
+            //resetParam[i] = params[RESET_PARAM].getValue();
+            //}
+
         }
 
         for (int c = 0; c < channels; c += 4)
         {
             auto *oscillator = &oscillators[c / 4];
-            //oscillator->invert = (params[PHASE_PARAM].getValue() == 0.f);
+
             oscillator->bipolar = (params[OFFSET_PARAM].getValue() == 0.f);
+
+            // Reset
+            
+            oscillator->setReset(inputs[RESET_INPUT].getPolyVoltageSimd<float_4>(c));
+            
 
             //Phase
             if (inputs[PH_INPUT].isConnected())
@@ -349,10 +360,7 @@ struct LFOPoly : Module
             oscillator->setPulseWidth(pw);
             oscillator->setPhase(pha);
             oscillator->step(args.sampleTime);
-            // if (resetTrigger.process(params[RESET_PARAM].getValue() + inputs[RESET_INPUT].getVoltage()))
-
-            oscillator->setReset(inputs[RESET_INPUT].getPolyVoltageSimd<float_4>(c));
-
+                        
             // Outputs
             //if (outputs[POLY_OUTPUT].isConnected())
             //{
@@ -399,32 +407,11 @@ struct LFOPoly : Module
         }
     };
 
-    /** Resets performance state */
-    void panic()
-    {
-        //pedal = false;
-        for (int c = 0; c < 16; c++)
-        {
-            //notes[c] = 60;
-            //gates[c] = false;
-            //velocities[c] = 0;
-            //aftertouches[c] = 0;
-            //pitches[c] = 8192;
-            //mods[c] = 0;
-            //pitchFilters[c].reset();
-            //modFilters[c].reset();
-        }
-        //pedal = false;
-        //rotateIndex = -1;
-        //heldNotes.clear();
-    }
-
     void setChannels(int channels)
     {
         if (channels == this->channels)
             return;
         this->channels = channels;
-        panic();
     }
 };
 
@@ -566,8 +553,6 @@ struct LFOPolyWidget : ModuleWidget
             addParam(createParamCentered<sts_Davies_25_Yellow>(Vec(portY + (i - 8) * y1, portx[5]+ x2), module, LFOPoly::PH_PARAM + i));
         }
 
-        addParam(createParamCentered<LEDButton>(Vec(portY - 25, 350), module, LFOPoly::RESET_PARAM));
-        addChild(createLightCentered<MediumLight<GreenLight>>(Vec(portY - 25, 350), module, LFOPoly::RESET_LIGHT));
         addInput(createInputCentered<sts_Port>(Vec(portY, 350), module, LFOPoly::RESET_INPUT));
         addInput(createInputCentered<sts_Port>(Vec(portY + y1, 350), module, LFOPoly::FREQ_INPUT));
         addInput(createInputCentered<sts_Port>(Vec(portY + y1 * 2, 350), module, LFOPoly::WAVE_INPUT));
