@@ -1,3 +1,18 @@
+V1.0.4
+
+On PolySEQ16:
+Fixed row 4 Octave control
+
+on LFOPoly:
+added variable phase control per LFo.
+2 versions now:
+1) LFOPoly has continuous control of each LFO's pahse, -180 degrees to +180 degrees
+2) LFOPolySP has Knob 'snapped' to 30 degree increment on each LFO's phase, -180 degrees to +180 degrees.  Let me know if you nee 15 degree increments.
+Will combine into 1 module is get enough requests.
+
+If you need separate outputs per LFO, use VCV SPLIT.
+
+Minor fixes on displays on all modules
 
 V1.0.3
 
