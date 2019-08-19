@@ -4,7 +4,6 @@ using namespace std;
 using namespace rack;
 
 using simd::float_4;
-
 template <typename T>
 struct LowFrequencyOscillator
 {
