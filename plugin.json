@@ -58,19 +58,6 @@
 			"name": "LFOPolySnapPhase",
 			"description": "Poly LFO 16 with Snap Phase",
 			"tags": ["LFO", "Polyphonic"]
-		},
-		{
-			"slug": "Chords",
-			"name": "Chords",
-			"description": "Poly Chords",
-			"tags": ["Utility", "Synth Voice", "Polyphonic"]
-		},
-		{
-			"slug": "MidiPlayer",
-			"name": "MidiPlayer",
-			"description": "Poly Midi Player",
-			"tags": ["Utility", "Synth Voice", "Polyphonic", "Sequencer"]
 		}
-		
 	]
 }
