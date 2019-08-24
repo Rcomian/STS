@@ -1,6 +1,6 @@
 {
 	"slug": "STS",
-	"version": "1.0.4",
+	"version": "1.0.5",
 	"license": "GPL-3.0-only",
 	"name": "STS",
 	"author": "STS",
@@ -58,6 +58,19 @@
 			"name": "LFOPolySnapPhase",
 			"description": "Poly LFO 16 with Snap Phase",
 			"tags": ["LFO", "Polyphonic"]
+		},
+		{
+			"slug": "Chords",
+			"name": "Chords",
+			"description": "Poly Chords",
+			"tags": ["Utility", "Synth Voice", "Polyphonic"]
+		},
+		{
+			"slug": "MidiPlayer",
+			"name": "MidiPlayer",
+			"description": "Poly Midi Player",
+			"tags": ["Utility", "Synth Voice", "Polyphonic", "Sequencer"]
 		}
+		
 	]
 }

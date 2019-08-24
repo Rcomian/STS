@@ -16,11 +16,11 @@ extern Model *modelVU_Poly;
 extern Model *modelLFOPoly;
 extern Model *modelLFOPolySP;
 //extern Model *modelChords;
-//extern Model *modelMidiPlayer;
+extern Model *modelMidiPlayer;
 //extern Model *modelSEQEXP;
-//namespace GTX {	
-//namespace Chords  { extern Model *model; }
-//}
+namespace GTX {	
+namespace Chords  { extern Model *model; }
+}
 
 #define MAX_POLY_CHANNELS 16
 #define GTX__N 16
@@ -76,6 +76,16 @@ struct stsBigPushButton : app::SVGSwitch
 		
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6b_0.svg")));
 		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6b_1.svg")));	
+	}
+};
+struct stsPushButton : app::SVGSwitch 
+{
+	stsPushButton() 
+	{
+		momentary = true;
+		
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6_0.svg")));
+		addFrame(APP->window->loadSvg(asset::plugin(pluginInstance, "res/cdk6_1.svg")));	
 	}
 };
 //============================================================================================================
@@ -232,16 +242,17 @@ struct sts_Trimpot_Grey : app::SVGKnob {
 	}
 };
 
-/*
-//  15 px trimpot
-struct sts_Trimpot_Black : app::SVGKnob {
-	sts_Trimpot_Black() {
+struct sts_snap_Trimpot_Grey : app::SVGKnob {
+	sts_snap_Trimpot_Grey() {
 		minAngle = -0.75*M_PI;
 		maxAngle = 0.75*M_PI;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-Trimpot_Black.svg")));
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts-Trimpot_Grey.svg")));
 	}
 };
-*/
+
+
 
 struct sts_Davies15_Grey : app::SVGKnob {
 	sts_Davies15_Grey() {
@@ -251,6 +262,24 @@ struct sts_Davies15_Grey : app::SVGKnob {
 	}
 };
 
+struct sts_Davies15_snap_Grey : app::SVGKnob {
+	sts_Davies15_snap_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_15.svg")));
+	}
+};
+struct sts_Davies_snap_47_Grey : app::SVGKnob {
+	sts_Davies_snap_47_Grey() {
+		minAngle = -0.75*M_PI;
+		maxAngle = 0.75*M_PI;
+		snap = true;
+		smooth = false;
+		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_47.svg")));
+	}
+};
 struct sts_Davies20_Grey : app::SVGKnob {
 	sts_Davies20_Grey() {
 		minAngle = -0.75*M_PI;
@@ -316,15 +345,7 @@ struct sts_Davies47_Grey : app::SVGKnob {
 	}
 };
 
-struct sts_Davies_snap_47_Grey : app::SVGKnob {
-	sts_Davies_snap_47_Grey() {
-		minAngle = -0.75*M_PI;
-		maxAngle = 0.75*M_PI;
-		snap = true;
-		smooth = false;
-		setSvg(APP->window->loadSvg(asset::plugin(pluginInstance,"res/sts_Davies1900_Grey_47.svg")));
-	}
-};
+
 
 struct sts_Davies_snap_25_Grey : app::SVGKnob {
 	sts_Davies_snap_25_Grey() {
@@ -493,19 +514,7 @@ struct sts_Port : SVGPort {
 //slider
 ///////////////////
 
-/*
-struct BefacoSlidePot : app::SvgSlider {
-	BefacoSlidePot() {
-		math::Vec margin = math::Vec(3.5, 3.5);
-		maxHandlePos = math::Vec(-1, -2).plus(margin);
-		minHandlePos = math::Vec(-1, 87).plus(margin);
-		setBackgroundSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoSlidePot.svg")));
-		setHandleSvg(APP->window->loadSvg(asset::system("res/ComponentLibrary/BefacoSlidePotHandle.svg")));
-		background->box.pos = margin;
-		box.size = background->box.size.plus(margin.mult(2));
-	}
-};
-*/
+
 
 /** Based on the size of 3mm LEDs */
 template <typename BASE>
@@ -515,6 +524,21 @@ struct stsMediumLight : BASE {
 	}
 };
 
+
+struct sts_SlidePotGrayHoriz : app::SVGSlider
+{
+	sts_SlidePotGrayHoriz()
+	{
+		math::Vec margin = math::Vec(0, 0);
+		maxHandlePos = math::Vec(114, 0).plus(margin);
+		minHandlePos = math::Vec(0, 0).plus(margin);
+		setBackgroundSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderHorizontal.svg")));
+		setHandleSvg(APP->window->loadSvg(asset::plugin(pluginInstance, "res/LEDSliderGrayHandleHorz.svg")));
+		background->box.pos = margin;
+		box.size = background->box.size.plus(margin.mult(2));
+		horizontal = true;
+	}
+};
 
 struct sts_SlidePotPink : app::SVGSlider
 {
@@ -544,6 +568,8 @@ struct sts_SlidePotBlack : app::SVGSlider
 		box.size = background->box.size.plus(margin.mult(2));
 	}
 };
+
+
 
 struct sts_SlidePotTeal : app::SVGSlider
 {
