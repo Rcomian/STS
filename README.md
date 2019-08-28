@@ -1,4 +1,7 @@
 V1.1.1
+Fixed SVG in Wavefolder module.
+
+and............
 Introducing MidiPlayer, a colaboration between STS and RCM:
 Midi Player allows you play standard Midi Files in VCV rack.  Unlimited tracks, with up to 16 VCV Channel Polyphony per track.
 
@@ -35,9 +38,6 @@ Second Row:
 1) "Clock out" is a clock out trigger to sync other sequencers to the Midi PLayer.  Right click context menu can select clock out multiplier.
 2, 3 4) CV inputs to the button above it.
 5) "EOC" is END OF CYCLE".  It is a CV uotput that send a trigger ant the end of the play cycle for external syncing.
-
-***********
-Also fixed SVG in Wavefolder
 
 *****************************************
 
