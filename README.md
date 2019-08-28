@@ -1,12 +1,12 @@
 V1.1.1
 Introducing MidiPlayer, a colaboration between STS and RCM:
-Midi Player allows you play standard Midi Files in VCV rack.
+Midi Player allows you play standard Midi Files in VCV rack.  Unlimited tracks, with up to 16 VCV Channel Polyphony per track.
 
 Load your file using the "Load File" button.  The light will show green when the file is successfully loaded.
 Once you load a file, you will see the following in Green lettering:
 1) File name of your file.
 2) Time display for your file.  It will update as file is playing.
-3) Track names as read from your file.  If ithe track names are blank, your file does not have track names defined. Midi Player does not siupport Gereral Midi (GM) at this time. If you can try looking at your file in a stand alone Midi PLayer such as "Midi Editor", and looking under the "Channels" tab to see General Midi manes for the tracks.  Load VCV 'Notes" and write a list of the GM names for the tracks in your patch as a reference.
+3) Track names as read from your file.  If ithe track names are blank, your file does not have track names defined. Midi Player does not support Gereral Midi (GM) at this time. If you can try looking at your file in a stand alone Midi PLayer such as "Midi Editor", and looking under the "Channels" tab to see if there are General Midi manes for the tracks.  Load VCV 'Notes" and write a list of the GM names for the tracks in your patch as a reference.
    
 Under the time display, you will have a "Scrub" horizontal slider that works the same as the Scrub knob In DAWs.  It allows you to change position in your file by moving the slider back and forth. 
 
