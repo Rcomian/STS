@@ -1,6 +1,10 @@
 {
 	"slug": "STS",
+<<<<<<< HEAD
 	"version": "1.1.1",
+=======
+	"version": "1.1.0",
+>>>>>>> cfa57eabf3ea92653c9bce7cda4b60bface4dd23
 	"license": "GPL-3.0-only",
 	"name": "STS",
 	"author": "STS",
