@@ -1,45 +1,49 @@
 V1.1.1
+
 Fixed SVG in Wavefolder module.
 
-and............
-Introducing MidiPlayer, a colaboration between STS and RCM:
+And  ............
+
+Introducing Midi Player, a collaboration between STS and RCM:
 Midi Player allows you play standard Midi Files in VCV rack.  Unlimited tracks, with up to 16 VCV Channel Polyphony per track.
+
+![pack](/res/midiplayer.png?raw=true "pack")
+
 
 Load your file using the "Load File" button.  The light will show green when the file is successfully loaded.
 Once you load a file, you will see the following in Green lettering:
 1) File name of your file.
 2) Time display for your file.  It will update as file is playing.
-3) Track names as read from your file.  If ithe track names are blank, your file does not have track names defined. Midi Player does not support Gereral Midi (GM) at this time. If you can try looking at your file in a stand alone Midi PLayer such as "Midi Editor", and looking under the "Channels" tab to see if there are General Midi manes for the tracks.  Load VCV 'Notes" and write a list of the GM names for the tracks in your patch as a reference.
-   
+3) Track names as read from your file.  If the track names are blank, your file does not have track names defined. Midi Player does not support General Midi (GM) at this time. If you can try looking at your file in a standalone Midi Player such as "Midi Editor", and looking under the "Channels" tab to see if there are General Midi manes for the tracks.  Load VCV 'Notes" and write a list of the GM names for the tracks in your patch as a reference.
+ 
 Under the time display, you will have a "Scrub" horizontal slider that works the same as the Scrub knob In DAWs.  It allows you to change position in your file by moving the slider back and forth. 
 
-The 2 knobs, light, and 5 outports name's are shortened to save on clutter. You will remember their function after your first use of Midi Player:
-1) "Po" knob is "Max Poly Channels". It is preset for the number of VCV channels in the track. The tooltip will show its present          setting.  It can be lowered, to wither save CPU use, or raised if you need more channels to play back properly in your present patch.  This will rarely nee to be adjusted from default.
-2) "Mm" knob is 'Midi Mode". It is defaulted to "Rotate", but can be changed is desired.  Using "Reuse" works better whena channel contains a number if drums.
-3) The light is displayed Green if that track has content, and Red if the track is blank.
+The 2 knobs, light, and 5 output ports name's are shortened to save on clutter. You will remember their function after your first use of Midi Player:
+1) "Po" knob is "Max Poly Channels". It is preset for the number of VCV channels in the track. The tooltip will show its present setting.  It can be lowered, to wither save CPU use, or raised if you need more channels to play back properly in your present patch.  This will rarely need to be adjusted from default.
+2) "Mm" knob is 'Midi Mode". It is defaulted to "Rotate", but can be changed is desired.  Using "Reuse" works better when a channel contains a number if drums.
+3) The light is displayed Green if that track has content and Red if the track is blank.
 The next five are standard outputs:
 4) "Vo" is the "Volts per Octave" output for the track.
 5) "Ga" is the 'Gate' output for the track.
 6) "Ve" is "velocity" or volume of the notes in the track.
 7) "At' is "After Touch. It sends any Aftertouch modulation that is in the file.
-8) "Rt" is "ReTrigger".  sends a Re Trigger signal is needed.
+8) "Rt" is "ReTrigger". Sends a Re Trigger signal is needed.
 
-The Loop Start and End Buttons can be set by clicking on either button. The will set you start point or end point for playing back you MidiFile, instead of using actual beginning and end of your file.  If the "Loop" On/Off" button is lit, the file will playback between the selected loop points.  If neither are lit, it will repeat from the beginning when it gets to the end of the file. Clicking on either button clears the state.
+The Loop Start and End Buttons can be set by clicking on either button. The will set you start point or end point for playing back you Midi File, instead of using actual beginning and end of your file.  If the "Loop" On/Off" button is lit, the file will playback between the selected loop points.  If neither are lit, it will repeat from the beginning when it gets to the end of the file. Clicking on either button clears the state.
 
-Accros the top of the module, you will see the following:
+Across the top of the module, you will see the following:
 First Row:
-1) "16+ Tracks" Light.  this will be lit if you file has more Tracks than will show in the module. Right clickinf will bring up the context menu that allows you to select groups of tracks to display and play.  Using more than 1 instance of MidiPlayer will allow you to play more than 16 tracks.  Conect a output from a module, (AS "Triggers MK III" is perect for this)  to both play and reset CV inputs to control multiple instances of Midi Player.
+1) "16+ Tracks" Light.  This will be lit if you file has more Tracks than will show in the module. Right clicking will bring up the context menu that allows you to select groups of tracks to display and play.  Using more than 1 instance of Midi Player will allow you to play more than 16 tracks.  Connect a output from a module,  AS "Triggers MK III" is perfect for this,  to both play and reset CV inputs to control multiple instances of Midi Player.
 2) "Load File" brings up the standard file selector to load your midi file.
 3) "Reset" button and CV input resets the stae to the same as when the file was newly loaded.
 4) "Run/Pause" button and CV input starts and stops the playback of your Midi File.
 5) "Loop On/Off" button and CV input, if button is lit, your file will start over when it gets to the endpoint.  See 'Loop start and end" button description for more info.
 6) "Rtn to Start" CV input, when sent a high state from a trigger, returns your midi player to the beginning.
 Second Row:
-1) "Clock out" is a clock out trigger to sync other sequencers to the Midi PLayer.  Right click context menu can select clock out multiplier.
-2, 3 4) CV inputs to the button above it.
-5) "EOC" is END OF CYCLE".  It is a CV uotput that send a trigger ant the end of the play cycle for external syncing.
+1) "Clock out" is a clock out trigger to sync other sequencers to the Midi Player.  Right click context menu can select clock out multiplier.
+2, 3 4) CV inputs that go to the button above it.
+5) "EOC" is END OF CYCLE".  It is a CV output that sends  a trigger at the end of the play cycle for external syncing.
 
-*****************************************
 
 V1.0.4
 
