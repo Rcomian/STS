@@ -12,8 +12,6 @@
 using namespace std;
 using namespace rack;
 
-
-
 #define MAX_POLY_CHANNELS 16
 #define VU_LEVELS 10
 
