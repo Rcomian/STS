@@ -23,7 +23,6 @@ struct Illiad : Module
 	{
 		// Sliders
 		ENUMS(OUT_OUTPUT, 35),
-
 		// Pitch,Ports,Octave
 		OUT1_OUTPUT_OCTAVE,
 		OUT1_OUTPUT_PORTA,
