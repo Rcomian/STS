@@ -1,7 +1,6 @@
 #include "window.hpp"
 #include "rack.hpp"
 
-
 using namespace rack;
 
 extern Plugin *pluginInstance;
@@ -17,10 +16,10 @@ extern Model *modelLFOPoly;
 extern Model *modelLFOPolySP;
 //extern Model *modelChords;
 extern Model *modelMidiPlayer;
-//extern Model *modelSEQEXP;
-namespace GTX {	
-namespace Chords  { extern Model *model; }
-}
+extern Model *modelDrumMap;
+//namespace GTX {	
+//namespace Chords  { extern Model *model; }
+//}
 
 #define MAX_POLY_CHANNELS 16
 #define GTX__N 16

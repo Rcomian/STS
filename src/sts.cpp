@@ -17,9 +17,9 @@ void init(rack::Plugin *p)
 	p->addModel(modelLFOPoly);
 	p->addModel(modelLFOPolySP);
 	//p->addModel(modelChords);
-	p->addModel(GTX::Chords ::model);
+	//p->addModel(GTX::Chords ::model);
 	p->addModel(modelMidiPlayer);
-	//p->addModel(modelSEQEXP);
+	p->addModel(modelDrumMap);
 	
 	
 
